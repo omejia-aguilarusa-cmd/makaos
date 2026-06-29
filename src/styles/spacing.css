@@ -1,0 +1,48 @@
+/* ===========================================================================
+   OBSIDIAN Trading OS — Spacing, radii, shadows, motion
+   The product uses a compact 4px rhythm, small radii (6–12px) and a single
+   deep ambient shadow reserved for overlays (modals, popovers, sticky bars).
+   =========================================================================== */
+:root {
+  /* ---- Spacing scale (4px base) ---- */
+  --space-1:  4px;
+  --space-2:  6px;
+  --space-3:  8px;
+  --space-4:  10px;
+  --space-5:  12px;
+  --space-6:  14px;
+  --space-7:  16px;
+  --space-8:  20px;
+  --space-9:  24px;
+  --gap-grid: 12px;   /* default gap between cards in a grid               */
+
+  /* ---- Radii (small, technical) ---- */
+  --r-sm:   5px;   /* inset boxes, bars                                     */
+  --r-md:   6px;   /* buttons, inputs, pills, tags                         */
+  --r-lg:   7px;   /* cards                                                 */
+  --r-xl:   11px;  /* KPI cards                                             */
+  --r-2xl:  12px;  /* top bar / large panels                               */
+  --r-pill: 999px; /* badges, L‑pills, status dots                         */
+
+  /* ---- Borders ---- */
+  --bw: 1px;       /* the system is uniformly hairline-bordered            */
+
+  /* ---- Shadows ---- */
+  --shadow:      0 18px 48px rgba(0,0,0,.34);   /* overlays / sticky bars  */
+  --glow-green:  0 0 10px var(--green);          /* live LED                */
+  --glow-red:    0 0 10px var(--red);
+  --glow-amber:  0 0 10px var(--amber);
+  --glow-blue:   0 0 9px rgba(47,130,255,.7);
+
+  /* ---- Motion ---- */
+  --ease:        cubic-bezier(.2,.6,.2,1); /* @kind other */
+  --dur-fast:    120ms; /* @kind other */
+  --dur:         200ms; /* @kind other */
+  /* The signature animation: a slow 2s opacity pulse on the "live" LED.   */
+}
+
+@keyframes obsidian-pulse {
+  0%   { opacity: 1; }
+  50%  { opacity: .45; }
+  100% { opacity: 1; }
+}
