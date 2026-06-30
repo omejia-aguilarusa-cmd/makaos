@@ -4,13 +4,14 @@ import { isWebGPUAvailable, loadEngine, streamChat, MODEL_LABEL, MODEL_APPROX_SI
 import { Sidebar, Topbar, ToastBar } from './ui/Shell.jsx'
 import DashboardScreen from './screens/DashboardScreen.jsx'
 import ScheduleScreen from './screens/ScheduleScreen.jsx'
+import ProjectsScreen from './screens/ProjectsScreen.jsx'
 import MacPaintersScreen from './screens/MacPaintersScreen.jsx'
 import PayrollScreen from './screens/PayrollScreen.jsx'
 import TimeLogsScreen from './screens/TimeLogsScreen.jsx'
 import IntegrationsScreen from './screens/IntegrationsScreen.jsx'
 import AssistantScreen from './screens/AssistantScreen.jsx'
 import { MAC_PAINTERS } from './lib/macPainters.js'
-import { payroll, money, META } from './lib/macPayroll.js'
+import { payroll, money, META, SITE_COUNT } from './lib/macPayroll.js'
 import Spotlight from './overlays/Spotlight.jsx'
 
 // Maka OS — operations console for a commercial painting contractor.
@@ -65,6 +66,7 @@ export default class App extends React.Component {
   ic(name, size, color) {
     const defs = {
       home: [['path', { d: 'M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z' }]],
+      folder: [['path', { d: 'M3.5 7.5a2 2 0 0 1 2-2h3.5l2 2h7.5a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z' }]],
       gantt: [['rect', { x: 3.5, y: 6, width: 9, height: 3, rx: 1.2 }], ['rect', { x: 7.5, y: 11, width: 11, height: 3, rx: 1.2 }], ['rect', { x: 5.5, y: 16, width: 8, height: 3, rx: 1.2 }]],
       users: [['circle', { cx: 9, cy: 9, r: 3 }], ['path', { d: 'M3.5 19a5.5 5.5 0 0 1 11 0' }], ['circle', { cx: 16, cy: 8, r: 2.4 }], ['path', { d: 'M14.5 13.5A4.5 4.5 0 0 1 20.5 18' }]],
       user: [['circle', { cx: 12, cy: 9, r: 3.5 }], ['path', { d: 'M5 19.5a7 7 0 0 1 14 0' }]],
@@ -112,10 +114,11 @@ export default class App extends React.Component {
     const v = this.state.view
     const conns = this.state.connections
     const connectedCount = Object.values(conns).filter(Boolean).length
-    const labels = { home: 'Dashboard', schedule: 'Schedule', 'mac-painters': 'Mac Painters', payroll: 'Payroll', 'time-logs': 'Time Logs', integrations: 'Integrations', assistant: 'Assistant' }
+    const labels = { home: 'Dashboard', schedule: 'Schedule', projects: 'Projects', 'mac-painters': 'Mac Painters', payroll: 'Payroll', 'time-logs': 'Time Logs', integrations: 'Integrations', assistant: 'Assistant' }
     const subs = {
       home: MAC_PAINTERS.meta.employeeCount + ' painters · Darwin + Mauricio · ' + MAC_PAINTERS.meta.shared + ' shared',
       schedule: 'Work timeline · ' + MAC_PAINTERS.meta.dateMin + ' → ' + MAC_PAINTERS.meta.dateMax,
+      projects: SITE_COUNT + ' job sites · ' + MAC_PAINTERS.meta.dateMin + ' → ' + MAC_PAINTERS.meta.dateMax,
       'mac-painters': MAC_PAINTERS.meta.employeeCount + ' employees · Darwin + Mauricio · ' + MAC_PAINTERS.meta.shared + ' shared',
       payroll: MAC_PAINTERS.meta.dateMin + ' → ' + MAC_PAINTERS.meta.dateMax,
       'time-logs': MAC_PAINTERS.meta.entryCount.toLocaleString('en-US') + ' entries',
@@ -125,6 +128,7 @@ export default class App extends React.Component {
       navMain: [
         this.navItem('home', 'Dashboard', 'home'),
         this.navItem('schedule', 'Schedule', 'gantt'),
+        this.navItem('projects', 'Projects', 'folder', SITE_COUNT),
         this.navItem('mac-painters', 'Mac Painters', 'users', MAC_PAINTERS.meta.employeeCount),
         this.navItem('payroll', 'Payroll', 'wallet'),
         this.navItem('time-logs', 'Time logs', 'clock'),
@@ -134,7 +138,7 @@ export default class App extends React.Component {
         Object.assign(this.navItem('assistant', 'Assistant', 'sparkle'), { hasDot: !!conns.claude }),
       ],
       crumb: { label: labels[v] || 'Mac Painters', sub: subs[v] || '' },
-      isHome: v === 'home', isSchedule: v === 'schedule', isMacPainters: v === 'mac-painters', isPayroll: v === 'payroll', isTimeLogs: v === 'time-logs', isIntegrations: v === 'integrations', isAssistant: v === 'assistant',
+      isHome: v === 'home', isSchedule: v === 'schedule', isProjects: v === 'projects', isMacPainters: v === 'mac-painters', isPayroll: v === 'payroll', isTimeLogs: v === 'time-logs', isIntegrations: v === 'integrations', isAssistant: v === 'assistant',
       connectedCount, syncSummary: MAC_PAINTERS.meta.employeeCount + ' painters · ' + MAC_PAINTERS.meta.entryCount.toLocaleString('en-US') + ' entries', syncTime: 'imported',
       icSearch: this.ic('search', 14), icGrid: this.ic('grid', 14), icSparkle: this.ic('sparkle', 14), icInbox: this.ic('inbox', 16), icActivity: this.ic('activity', 14), icPin: this.ic('pin', 16), icGridBig: this.ic('grid', 20), icClose: this.ic('close', 15),
       openSpotlight: () => this.setState({ spotlight: true }),
@@ -362,6 +366,7 @@ export default class App extends React.Component {
           <section style={css('flex:1;overflow:auto;min-height:0;position:relative')} data-screen-label={v.crumb.label}>
             {v.isHome && <DashboardScreen onGo={(view) => this.setView(view)} />}
             {v.isSchedule && <ScheduleScreen />}
+            {v.isProjects && <ProjectsScreen />}
             {v.isMacPainters && <MacPaintersScreen />}
             {v.isPayroll && <PayrollScreen />}
             {v.isTimeLogs && <TimeLogsScreen />}
