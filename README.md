@@ -36,7 +36,7 @@ npm run preview  # preview the production build
 | **Projects** | Searchable, status‑filtered cards with revenue / cost / profit / margin and progress |
 | **Painters** | Crew‑filtered roster table with pay, hours, availability, and active‑project chips |
 | **Mac Painters** | The real merged payroll (Darwin + Mauricio partners): one de‑duplicated roster, a Team toggle (Both / Darwin / Mauricio) and a date range that recompute accurate hours & recorded $ for any window |
-| **Payroll** | Weekly cycle: reg/OT hours, gross, deductions, net, per‑employee, with KPIs |
+| **Payroll** | Real **Mac Painters** payroll (with a Demo‑cycle toggle): pick a team + pay period and get est. gross, additions, deductions and net per employee |
 | **Reports** | A library of payroll, labor, P&L, change‑order and productivity reports |
 | **Change orders / Expenses / Time logs / Addresses** | Operational tables across every project |
 | **Integrations** | Connect/disconnect Google Sheets, Drive, Calendar, Gmail, Claude, QuickBooks, Slack |
@@ -90,6 +90,11 @@ their books are merged into one roster:
   [`docs/mac-painters-merge-report.txt`](docs/mac-painters-merge-report.txt).
   "Recorded $" is the amount logged per row (wages for hourly crew, contract/job
   values for subcontractors), so **hours** is the cleanest cross‑team metric.
+- **Drill‑down + wages.** Each entry also carries its base / additions /
+  deductions / net, so the roster shows **estimated wages** (hours × rate for
+  hourly/per‑day; recorded total for fixed/contract). Click any painter to see
+  their full daily log for the current team + window, and the same numbers drive
+  the **Payroll** screen's "Mac Painters · real" mode.
 
 ## Notes
 
