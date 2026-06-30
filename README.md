@@ -39,7 +39,7 @@ npm run preview  # preview the production build
 | **Reports** | A library of payroll, labor, P&L, change‑order and productivity reports |
 | **Change orders / Expenses / Time logs / Addresses** | Operational tables across every project |
 | **Integrations** | Connect/disconnect Google Sheets, Drive, Calendar, Gmail, Claude, QuickBooks, Slack |
-| **Assistant** | Claude copilot that answers from the live workspace data (falls back to a built‑in mock when no Claude API is wired) |
+| **Assistant** | Copilot that answers from the live workspace data — runs a model **on-device** (WebLLM) with no API key, or falls back to a built‑in responder |
 | **Overlays** | Project & painter drawers, schedule‑block popover, ⌘K universal search, and change‑order / expense / bulk‑hours forms |
 
 Keyboard: **⌘K / Ctrl‑K** opens universal search, **Esc** closes any overlay.
@@ -73,9 +73,15 @@ design/                  The original Claude Design artifacts, kept for provenan
 - **Data is simulated.** "Today" is locked to May 1, 2026 so the schedule and
   payroll cycle stay stable. The sandbox banner makes this explicit; no external
   data is ever sent.
-- **Assistant.** If a `window.claude.complete` bridge is present it is used;
-  otherwise the copilot answers from a built‑in responder over the same data, so
-  the experience works fully offline.
+- **Assistant — on-device AI.** The copilot can run a small LLM
+  (**Llama 3.2 1B** via [WebLLM](https://github.com/mlc-ai/web-llm)) entirely in
+  the browser on WebGPU — no server and no API key. Open **Assistant** and click
+  **Enable**; the model (~0.9 GB) downloads once, is cached by the browser, and
+  then works offline, streaming answers grounded in your workspace data. WebLLM
+  is lazy‑loaded, so it never weighs down the initial app load. Requires a
+  WebGPU browser (Chrome, Edge, or Safari 18+). The copilot also uses a
+  `window.claude.complete` bridge if one is injected, and always falls back to a
+  built‑in grounded responder, so it works everywhere.
 - **Fidelity.** Screen markup is translated close to 1:1 from the design. Inline
   styles are preserved as CSS strings (parsed by `css()`), and `style-hover`
   states are handled by the `Box` primitive, so the rendered result matches the

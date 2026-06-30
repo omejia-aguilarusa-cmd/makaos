@@ -1,5 +1,6 @@
 import React from 'react'
 import { css } from './lib/css.js'
+import { isWebGPUAvailable, loadEngine, streamChat, MODEL_LABEL, MODEL_APPROX_SIZE } from './lib/localAI.js'
 import { Sidebar, Topbar, SafetyBanner, ToastBar } from './ui/Shell.jsx'
 import HomeScreen from './screens/HomeScreen.jsx'
 import ScheduleScreen from './screens/ScheduleScreen.jsx'
@@ -46,6 +47,8 @@ export default class App extends React.Component {
       toast: null, chatBusy: false,
       zoom: 'week', groupBy: 'project',
       filters: { status: 'all', crew: 'all' },
+      // On-device AI engine (WebLLM). 'idle' until the user turns it on.
+      ai: { status: isWebGPUAvailable() ? 'idle' : 'unsupported', progress: 0, note: '' },
     }
   }
 
@@ -407,6 +410,24 @@ export default class App extends React.Component {
   askClaude(q) { this.setView('assistant'); setTimeout(() => this.sendChat(q), 70) }
   styleStr(o) { return o }
 
+  // Turn on the on-device model: lazy-load WebLLM + the weights, reporting
+  // download/compile progress, then route the copilot through it.
+  async enableLocalAI() {
+    if (!isWebGPUAvailable()) { this.setState({ ai: { status: 'unsupported', progress: 0, note: '' } }); return }
+    const st = this.state.ai.status
+    if (st === 'loading' || st === 'ready') return
+    this.setState({ ai: { status: 'loading', progress: 0, note: 'Preparing…' } })
+    try {
+      await loadEngine((r) => this.setState({ ai: { status: 'loading', progress: r.progress || 0, note: r.text || '' } }))
+      this.setState({ ai: { status: 'ready', progress: 1, note: '' } })
+      this.toast('On-device AI ready · ' + MODEL_LABEL)
+    } catch (e) {
+      console.error('[Maka OS] local AI load failed:', e)
+      this.setState({ ai: { status: 'error', progress: 0, note: String((e && e.message) || e) } })
+      this.toast('Could not load on-device AI — using built-in responder')
+    }
+  }
+
   buildContext() {
     const D = this.db
     const L = []
@@ -426,13 +447,34 @@ export default class App extends React.Component {
   async sendChat(text) {
     text = (text || '').trim()
     if (!text || this.state.chatBusy) return
-    const chat = this.state.chat.concat([{ role: 'user', text }])
-    this.setState({ chat, chatBusy: true })
-    const prompt = this.buildContext() + '\n\nConversation:\n' + chat.slice(-8).map((m) => (m.role === 'user' ? 'Operator: ' : 'Copilot: ') + m.text).join('\n') + '\n\nReply as Copilot in 2–5 sentences with specific numbers.'
+    const base = this.state.chat.concat([{ role: 'user', text }])
+    this.setState({ chat: base, chatBusy: true })
+
+    // 1) On-device model (WebLLM), streamed token-by-token.
+    if (this.state.ai.status === 'ready') {
+      const messages = [{ role: 'system', content: this.buildContext() + '\n\nReply as the Maka copilot in 2–5 sentences with specific numbers. Plain text, no markdown headers.' }]
+      for (const m of base.slice(-7)) messages.push({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text })
+      let started = false
+      const replace = (s, t) => (started ? s.chat.slice(0, -1) : s.chat.slice()).concat([{ role: 'assistant', text: t }])
+      try {
+        const full = await streamChat(messages, (partial) => {
+          this.setState((s) => { const c = replace(s, partial); started = true; return { chat: c, chatBusy: false } })
+        })
+        const finalText = (full || '').trim() || this.mockReply(text)
+        this.setState((s) => ({ chat: replace(s, finalText), chatBusy: false }))
+      } catch (e) {
+        console.error('[Maka OS] local AI inference failed:', e)
+        this.setState((s) => ({ chat: replace(s, this.mockReply(text)), chatBusy: false }))
+      }
+      return
+    }
+
+    // 2) An injected Claude bridge if present, else 3) the built-in grounded responder.
+    const prompt = this.buildContext() + '\n\nConversation:\n' + base.slice(-8).map((m) => (m.role === 'user' ? 'Operator: ' : 'Copilot: ') + m.text).join('\n') + '\n\nReply as Copilot in 2–5 sentences with specific numbers.'
     let reply = null
     try { if (window.claude && window.claude.complete) { reply = await window.claude.complete({ messages: [{ role: 'user', content: prompt }] }) } } catch (e) { reply = null }
     if (!reply || !String(reply).trim()) reply = this.mockReply(text)
-    this.setState({ chat: chat.concat([{ role: 'assistant', text: String(reply).trim() }]), chatBusy: false })
+    this.setState({ chat: base.concat([{ role: 'assistant', text: String(reply).trim() }]), chatBusy: false })
   }
 
   mockReply(q) {
@@ -481,6 +523,7 @@ export default class App extends React.Component {
     })
     return {
       chatMsgs: msgs, chatBusy: this.state.chatBusy, icSparkleSm: this.ic('sparkle', 15, '#e8927c'), icSend: this.ic('send', 16),
+      ai: this.state.ai, aiPct: Math.round((this.state.ai.progress || 0) * 100), aiLabel: MODEL_LABEL, aiSize: MODEL_APPROX_SIZE, aiEnable: () => this.enableLocalAI(),
       chatSuggest: [
         { text: 'Weakest-margin project?', onClick: () => this.sendChat('Which project has the weakest margin and why?') },
         { text: 'This week’s payroll', onClick: () => this.sendChat('Summarize this week’s payroll totals.') },
