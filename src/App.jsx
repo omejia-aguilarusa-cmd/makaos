@@ -14,6 +14,8 @@ import TimeLogsScreen from './screens/TimeLogsScreen.jsx'
 import AddressesScreen from './screens/AddressesScreen.jsx'
 import IntegrationsScreen from './screens/IntegrationsScreen.jsx'
 import AssistantScreen from './screens/AssistantScreen.jsx'
+import MacPaintersScreen from './screens/MacPaintersScreen.jsx'
+import { MAC_PAINTERS } from './lib/macPainters.js'
 import Spotlight from './overlays/Spotlight.jsx'
 import Popover from './overlays/Popover.jsx'
 import DrawerHost from './overlays/DrawerHost.jsx'
@@ -318,11 +320,12 @@ export default class App extends React.Component {
     const D = this.db
     const conns = this.state.connections
     const connectedCount = Object.values(conns).filter(Boolean).length
-    const labels = { home: 'Command Center', schedule: 'Schedule', projects: 'Projects', painters: 'Painters', payroll: 'Payroll', reports: 'Reports', 'change-orders': 'Change Orders', expenses: 'Expenses', 'time-logs': 'Time Logs', addresses: 'Addresses', integrations: 'Integrations', assistant: 'Assistant' }
+    const labels = { home: 'Command Center', schedule: 'Schedule', projects: 'Projects', painters: 'Painters', 'mac-painters': 'Mac Painters', payroll: 'Payroll', reports: 'Reports', 'change-orders': 'Change Orders', expenses: 'Expenses', 'time-logs': 'Time Logs', addresses: 'Addresses', integrations: 'Integrations', assistant: 'Assistant' }
     const subs = {
       home: 'May 2026 · ' + D.projects.length + ' projects · ' + D.painters.length + ' painters',
       schedule: D.projects.length + ' projects · ' + D.painters.length + ' painters',
       payroll: 'Apr 27 – May 3, 2026',
+      'mac-painters': MAC_PAINTERS.meta.employeeCount + ' employees · Darwin + Mauricio · ' + MAC_PAINTERS.meta.shared + ' shared',
       integrations: connectedCount + ' of 7 connected',
     }
     return {
@@ -331,6 +334,7 @@ export default class App extends React.Component {
         this.navItem('schedule', 'Schedule', 'gantt'),
         this.navItem('projects', 'Projects', 'folder', D.projects.length),
         this.navItem('painters', 'Painters', 'users', D.painters.length),
+        this.navItem('mac-painters', 'Mac Painters', 'book', MAC_PAINTERS.meta.employeeCount),
         this.navItem('payroll', 'Payroll', 'wallet'),
         this.navItem('reports', 'Reports', 'chart'),
       ],
@@ -346,7 +350,7 @@ export default class App extends React.Component {
       ],
       crews: ['Crew A', 'Crew B', 'Crew C'].map((c) => ({ name: c, count: D.painters.filter((p) => p.crew === c).length, color: 'var(--accent)' })),
       crumb: { label: labels[v] || 'Maka', sub: subs[v] || '' },
-      isHome: v === 'home', isSchedule: v === 'schedule', isProjects: v === 'projects', isPainters: v === 'painters', isPayroll: v === 'payroll', isReports: v === 'reports', isChangeOrders: v === 'change-orders', isExpenses: v === 'expenses', isTimeLogs: v === 'time-logs', isAddresses: v === 'addresses', isIntegrations: v === 'integrations', isAssistant: v === 'assistant',
+      isHome: v === 'home', isSchedule: v === 'schedule', isProjects: v === 'projects', isPainters: v === 'painters', isMacPainters: v === 'mac-painters', isPayroll: v === 'payroll', isReports: v === 'reports', isChangeOrders: v === 'change-orders', isExpenses: v === 'expenses', isTimeLogs: v === 'time-logs', isAddresses: v === 'addresses', isIntegrations: v === 'integrations', isAssistant: v === 'assistant',
       showBanner: this.props.safetyBanner !== false,
       connectedCount, syncSummary: connectedCount + ' tools live · ' + this.allExpenses().length + ' records', syncTime: '2m ago',
       icSearch: this.ic('search', 14), icGrid: this.ic('grid', 14), icSparkle: this.ic('sparkle', 14), icInbox: this.ic('inbox', 16), icActivity: this.ic('activity', 14), icPin: this.ic('pin', 16), icGridBig: this.ic('grid', 20), icClose: this.ic('close', 15),
@@ -906,6 +910,7 @@ export default class App extends React.Component {
             {v.isSchedule && <ScheduleScreen v={v} />}
             {v.isProjects && <ProjectsScreen v={v} />}
             {v.isPainters && <PaintersScreen v={v} />}
+            {v.isMacPainters && <MacPaintersScreen />}
             {v.isReports && <ReportsScreen v={v} />}
             {v.isPayroll && <PayrollScreen v={v} />}
             {v.isChangeOrders && <ChangeOrdersScreen v={v} />}

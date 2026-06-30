@@ -35,6 +35,7 @@ npm run preview  # preview the production build
 | **Schedule** | Interactive Gantt — day/week/month zoom, group by project or painter, bars with progress, milestones, conflict detection, today line |
 | **Projects** | Searchable, status‑filtered cards with revenue / cost / profit / margin and progress |
 | **Painters** | Crew‑filtered roster table with pay, hours, availability, and active‑project chips |
+| **Mac Painters** | The real merged payroll (Darwin + Mauricio partners): one de‑duplicated roster, a Team toggle (Both / Darwin / Mauricio) and a date range that recompute accurate hours & recorded $ for any window |
 | **Payroll** | Weekly cycle: reg/OT hours, gross, deductions, net, per‑employee, with KPIs |
 | **Reports** | A library of payroll, labor, P&L, change‑order and productivity reports |
 | **Change orders / Expenses / Time logs / Addresses** | Operational tables across every project |
@@ -67,6 +68,28 @@ design/                  The original Claude Design artifacts, kept for provenan
                                                       exact source design running
                            Maka OS.dc.html          — the design‑component source
 ```
+
+## Mac Painters — real payroll import
+
+`Mac Painters` (in the sidebar) is built from the two real company payroll
+spreadsheets — **Darwin** and **Mauricio** are partners in the same company, so
+their books are merged into one roster:
+
+- **One person, counted once.** Name variants across both books (typos,
+  first‑name vs. full name, accents, English/Spanish) are normalised and merged
+  — e.g. *Nery / Nery Josue Ramos*, *Flor / Flor Helena*, *Alonso / Alonso
+  Mejia*. The `aka` line under each name lists the source spellings.
+- **Tagged by team.** Each painter is tagged with the team(s) they were logged
+  under. The ~25 people who appear under **both** owners are the shared /
+  borrowed crew. Use the **Both / Darwin / Mauricio** toggle plus the date range
+  to see, say, just Darwin's crew for a given week — every total recomputes from
+  the dated entries.
+- **Source of truth.** `src/lib/macPainters.js` is generated from the sheets
+  (55 employees, ~2,080 dated entries). The merge decisions — including a few
+  flagged for confirmation (⚑) — are written up in
+  [`docs/mac-painters-merge-report.txt`](docs/mac-painters-merge-report.txt).
+  "Recorded $" is the amount logged per row (wages for hourly crew, contract/job
+  values for subcontractors), so **hours** is the cleanest cross‑team metric.
 
 ## Notes
 
