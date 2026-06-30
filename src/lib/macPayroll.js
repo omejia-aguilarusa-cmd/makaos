@@ -101,35 +101,58 @@ const STREET_TYPE = {
 // that the deterministic key can't safely catch — the job-site analogue of the
 // painter name-variant merge. Each maps a canonical key to its canonical site.
 const SITE_ALIASES = {
+  // Cabanas Orangeburg — spelling/typo variants of one site.
   'cabanas orangeburge': 'cabanas orangeburg',
   'cabanas orangburg': 'cabanas orangeburg',
   'cabanas orangebur': 'cabanas orangeburg',
   'cabanas de orangeburg': 'cabanas orangeburg',
+  // 432 Delmont Dr — Rd/Dr and city-suffixed variants.
   '432 delmont rd': '432 delmont dr',
   '432 delmont dr goose creek': '432 delmont dr',
+  // 713 Leafwood Rd, Charleston — with/without city, abbreviations, "II".
+  '713 leafwood rd': '713 leafwood rd charleston',
+  '713 leafwood ii': '713 leafwood rd charleston',
+  '713 leafwood': '713 leafwood rd charleston',
+  // 3527 Stockton Dr, Mount Pleasant — city present/absent/misspelled.
+  '3527 stockton dr mt pleasent': '3527 stockton dr',
+  '3527 stockton dr mountpleasent': '3527 stockton dr',
+  // 220 Fountain Lake Dr, Eutawville.
+  '220 fountain lake dr eutawville': '220 fountain lake dr',
+  // 403 W Ashley Ave, Folly Beach — "West Ashley" / abbreviations.
+  '403 w ashley ave folly beach': '403 w ashley ave',
+  '403 west ashley folly beach': '403 w ashley ave',
+  // 1681 Garden St — with/without "St".
+  '1681 garden': '1681 garden st',
+  // 520 E Hudson Ave, Folly Beach — abbreviations / missing city.
+  '520 e hudson ave': '520 e hudson ave folly beach',
+  '520 e hudson': '520 e hudson ave folly beach',
+  '520 hudson ave': '520 e hudson ave folly beach',
 }
 
-// Canonical grouping key. Lowercase the normalized address, strip a trailing
-// ZIP and state, normalize street-type abbreviations (Dr/Drive, Rd/Road, …),
-// and collapse adjacent duplicate tokens — both repeated cities
-// ("Charleston, Charleston") and "Dr/Rd"-style alternate suffixes. The house
-// number, street name and city all remain in the key, so the same site written
-// slightly differently merges, but genuinely different addresses never do.
+// Canonical grouping key. Lowercase + strip diacritics, collapse "Dr/Rd"-style
+// alternate street suffixes, strip a trailing ZIP / state / country, normalize
+// street-type abbreviations (Dr/Drive, Rd/Road, …), and collapse repeated
+// tokens. The house number, street name AND city stay in the key, so it merges
+// casing/spacing/abbreviation/ZIP variants of one address without ever merging
+// genuinely different addresses. It does NOT merge a site that is sometimes
+// written with a city and sometimes without (or with a misspelled city) — those
+// residual cases are handled explicitly by SITE_ALIASES, never guessed.
 function siteKeyOf(loc) {
-  let s = normalizeSite(loc).toLowerCase().replace(/\//g, ' ')
-  for (let i = 0; i < 4; i++) {
+  let s = normalizeSite(loc).toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '')
+  // "432 Delmont Dr/Rd" → drop the alternate suffix; other slashes → spaces.
+  s = s.replace(/\b([a-z]+)\/([a-z]+)\b/g, (m, a, b) => (STREET_TYPE[a] && STREET_TYPE[b] ? a : m)).replace(/\//g, ' ')
+  for (let i = 0; i < 5; i++) {
     const before = s
-    s = s.replace(/[\s,]+\d{4,5}\s*$/, '')                                       // trailing ZIP
-    s = s.replace(/[\s,]+(south carolina|north carolina|georgia|sc|nc|ga)\s*$/, '') // trailing state
+    s = s.replace(/[\s,]+\d{4,5}\s*$/, '')                                           // trailing ZIP
+    s = s.replace(/[\s,]+(south carolina|north carolina|georgia|sc|nc|ga)\s*$/, '')  // trailing state
+    s = s.replace(/[\s,]+(usa|united states)\s*$/, '')                               // trailing country
     if (s === before) break
   }
   const out = []
   for (const raw of s.split(/[^a-z0-9]+/)) {
     if (!raw) continue
     const t = STREET_TYPE[raw] || raw
-    const prev = out[out.length - 1]
-    if (prev === t) continue                                  // "charleston charleston"
-    if (prev && STREET_TYPE[prev] && STREET_TYPE[t]) continue // "dr rd"
+    if (out[out.length - 1] === t) continue   // collapse a repeated token ("charleston charleston")
     out.push(t)
   }
   const key = out.join(' ').trim()
@@ -174,10 +197,16 @@ export function jobSites(team, from, to, { q = '', category = 'all' } = {}) {
 }
 
 // Every entry logged against one job site (by normalized key), newest first,
-// each carrying the painter's display name.
-export function siteEntries(siteKey, team, from, to) {
+// each carrying the painter's display name. `category` ('all' | 'wage' |
+// 'contract') matches jobSites so the drawer's entries agree with its tiles.
+export function siteEntries(siteKey, team, from, to, category = 'all') {
   return filterEntries(team, from, to)
-    .filter((e) => e.location && siteKeyOf(e.location) === siteKey)
+    .filter((e) => {
+      if (!e.location || siteKeyOf(e.location) !== siteKey) return false
+      if (category === 'all') return true
+      const emp = EMP_BY_ID[e.empId]
+      return (emp && isContract(emp) ? 'contract' : 'wage') === category
+    })
     .map((e) => ({ ...e, name: (EMP_BY_ID[e.empId] || {}).name || e.empId }))
     .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : a.name.localeCompare(b.name)))
 }

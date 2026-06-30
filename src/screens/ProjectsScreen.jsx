@@ -44,7 +44,15 @@ export default function ProjectsScreen() {
   }, [rows, sort])
 
   const sel = selKey ? rows.find((r) => r.key === selKey) : null
-  const selEntries = useMemo(() => (selKey ? siteEntries(selKey, team, from, to) : []), [selKey, team, from, to])
+  const selEntries = useMemo(() => (selKey ? siteEntries(selKey, team, from, to, cat) : []), [selKey, team, from, to, cat])
+
+  // If the selected site drops out of the filtered results (search/team/date/
+  // category changed), clear the selection so the drawer doesn't silently
+  // reopen when the filter is later relaxed — and so the Escape listener below
+  // is torn down.
+  useEffect(() => {
+    if (selKey && !rows.some((r) => r.key === selKey)) setSelKey(null)
+  }, [rows, selKey])
 
   // Close the detail drawer on Escape (it lives in local state, out of reach of
   // the app-level Escape handler).
