@@ -28,13 +28,3 @@ export function css(str) {
   cache.set(str, o)
   return o
 }
-
-// Merge any number of CSS strings / style objects into one style object.
-export function cx(...parts) {
-  const out = {}
-  for (const p of parts) {
-    if (!p) continue
-    Object.assign(out, css(p))
-  }
-  return out
-}
