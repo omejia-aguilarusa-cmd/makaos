@@ -10,5 +10,17 @@ export default defineConfig({
   // lazy-loaded chunk — it is only fetched when the user enables the local
   // model, so it never weighs down the initial app load. Raise the warning
   // limit so this expected big chunk doesn't flag the build.
-  build: { chunkSizeWarningLimit: 7000 },
+  build: {
+    chunkSizeWarningLimit: 7000,
+    rollupOptions: {
+      output: {
+        // Split the React runtime into a long-lived `vendor` chunk so it
+        // caches independently of app code across deploys. web-llm is left to
+        // Rollup's automatic dynamic-import chunk so it stays lazy-loaded.
+        manualChunks(id) {
+          if (/node_modules\/(react|react-dom|scheduler)\//.test(id)) return 'vendor'
+        },
+      },
+    },
+  },
 })
