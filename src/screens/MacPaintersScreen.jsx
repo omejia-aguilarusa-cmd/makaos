@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { css } from '../lib/css.js'
 import { Box } from '../ui/Box.jsx'
 import { StatCard, Badge } from '../ds/index.jsx'
@@ -41,6 +41,15 @@ export default function MacPaintersScreen() {
   const sel = selId ? employeeById(selId) : null
   const selEntries = useMemo(() => (selId ? employeeEntries(selId, team, from, to) : []), [selId, team, from, to])
   const selAgg = selId ? rows.find((r) => r.id === selId) : null
+
+  // Close the detail drawer on Escape. The drawer lives in this component's
+  // local state, so the app-level Escape handler can't reach it.
+  useEffect(() => {
+    if (!selId) return
+    const onKey = (e) => { if (e.key === 'Escape') setSelId(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [selId])
 
   const Th = ({ children, k, num }) => (
     <th onClick={k ? () => setSort(k) : undefined}
@@ -129,8 +138,8 @@ export default function MacPaintersScreen() {
 
       {sel && selAgg && (
         <>
-          <div onClick={() => setSelId(null)} style={css('position:fixed;inset:0;background:rgba(4,6,10,.5);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);z-index:100')} />
-          <aside style={css('position:fixed;top:12px;right:12px;bottom:12px;width:760px;max-width:94vw;background:var(--panel);border:1px solid var(--line-strong);border-radius:14px;box-shadow:0 28px 70px rgba(0,0,0,.6);z-index:110;display:flex;flex-direction:column;overflow:hidden')}>
+          <div onClick={() => setSelId(null)} aria-hidden="true" style={css('position:fixed;inset:0;background:rgba(4,6,10,.5);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);z-index:100')} />
+          <aside role="dialog" aria-modal="true" aria-label={`${sel.name} — daily entries`} style={css('position:fixed;top:12px;right:12px;bottom:12px;width:760px;max-width:94vw;background:var(--panel);border:1px solid var(--line-strong);border-radius:14px;box-shadow:0 28px 70px rgba(0,0,0,.6);z-index:110;display:flex;flex-direction:column;overflow:hidden')}>
             <div style={css('padding:14px 16px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;gap:10px;flex-shrink:0')}>
               <div style={css('flex:1;min-width:0')}>
                 <div style={css('display:flex;align-items:center;gap:7px')}>
