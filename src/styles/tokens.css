@@ -1,0 +1,78 @@
+/* ===========================================================================
+   OBSIDIAN Trading OS — Color tokens
+   Lifted verbatim from the product dashboard
+   (_bot/dashboard/static/index.html + status.html).
+   A dark "trading-terminal" palette: near-black navy surfaces, cool slate
+   text, and saturated semantic accents (blue primary, green/red P&L).
+   =========================================================================== */
+:root {
+  /* ---- Surfaces (darkest → lightest) ---- */
+  --bg:        #070a10;   /* app background — near-black navy            */
+  --nav:       #0b101b;   /* sidebar / nav rail                          */
+  --surface:   #0a0f1b;   /* sidebar interior                            */
+  --topbar:    #090e18;   /* sticky top bar                              */
+  --panel:     #111724;   /* default card / panel                        */
+  --panel-2:   #141b2a;   /* card headers, hover rows, inset boxes       */
+  --panel-3:   #182235;   /* raised inset (mini stat boxes)              */
+  --inset:     #151d2e;   /* tiny boxes inside cards                     */
+  --input-bg:  #080d16;   /* form field background                       */
+
+  /* ---- Lines / borders ---- */
+  --line:      #243149;   /* primary 1px border                          */
+  --line-soft: #1d283d;   /* subtle divider (rows, card-head underline)  */
+  --line-strong:#365078;  /* hover / focus border                        */
+
+  /* ---- Text ---- */
+  --text:      #e9eef8;   /* primary text                                */
+  --muted:     #94a3b8;   /* secondary text                              */
+  --faint:     #516078;   /* tertiary / labels / placeholder             */
+  --faint-2:   #40506a;   /* tiny uppercase labels                       */
+
+  /* ---- Brand + semantic accents ---- */
+  --blue:      #2f82ff;   /* PRIMARY — actions, links, focus, selection  */
+  --blue-hi:   #65a8ff;   /* lighter blue — counts, accent text          */
+  --cyan:      #18d6e8;   /* info / paper-mode / secondary accent        */
+  --green:     #20e070;   /* positive — profit, online, approved         */
+  --red:       #ff454f;   /* negative — loss, blocked, danger, e-stop    */
+  --amber:     #ffac18;   /* warning — pending, watch, untested          */
+  --purple:    #a855f7;   /* crypto asset class / shadow strategies      */
+
+  /* ---- Brand gradients ---- */
+  --grad-logo: linear-gradient(135deg, #1387ff, #2a5fff); /* @kind color */
+  --grad-estop:linear-gradient(180deg, #ff5b62, #e8333e); /* @kind color */
+
+  /* ---- Translucent accent fills (tags / badges) ---- */
+  --green-soft:  rgba(32,224,112,.14);
+  --green-line:  rgba(32,224,112,.40);
+  --red-soft:    rgba(255,69,79,.13);
+  --red-line:    rgba(255,69,79,.50);
+  --amber-soft:  rgba(255,172,24,.16);
+  --amber-line:  rgba(255,172,24,.55);
+  --blue-soft:   rgba(47,130,255,.16);
+  --cyan-soft:   rgba(24,214,232,.14);
+  --cyan-line:   rgba(24,214,232,.35);
+  --purple-soft: rgba(168,85,247,.16);
+
+  /* ===== Semantic aliases (prefer these in components) ===== */
+  --surface-app:    var(--bg);
+  --surface-card:   var(--panel);
+  --surface-raised: var(--panel-2);
+  --surface-inset:  var(--inset);
+
+  --text-primary:   var(--text);
+  --text-secondary: var(--muted);
+  --text-tertiary:  var(--faint);
+
+  --border-default: var(--line);
+  --border-subtle:  var(--line-soft);
+  --border-hover:   var(--line-strong);
+
+  --accent:         var(--blue);
+  --accent-hover:   var(--blue-hi);
+  --focus-ring:     rgba(47,130,255,.15);
+
+  --pos:            var(--green);   /* profit / up    */
+  --neg:            var(--red);     /* loss / down    */
+  --warn:           var(--amber);   /* caution        */
+  --info:           var(--cyan);    /* informational  */
+}

@@ -1,0 +1,72 @@
+MAC PAINTERS — merged roster (Darwin + Mauricio)
+
+Total unique employees: 55  |  shared(both): 25  |  Darwin-only: 13  |  Mauricio-only: 17
+Total entries imported: 2079 (Darwin 883, Mauricio 1196)
+
+— SHARED (borrowed / split crews) —
+  Alexander Hernandez    [darwin+mauricio ] Hourly   $19    h=750.5   $5745.00    n=76   <= Alexandar, Alexander, Alexander Hernanez  ⚑ Darwin "Alexandar/Alexander" linked to Mauricio "Alexander Hernanez" — confirm same person
+  Alonso Mejia           [darwin+mauricio ] Fixed    $500   h=1443.0  $19117.80   n=61   <= Alonso, Alonso Mejia
+  Angel                  [darwin+mauricio ] Hourly   $19    h=698.5   $14079.50   n=86   <= Angel
+  Angela C. Reyes        [darwin+mauricio ] Contract        h=198.0   $28692.00   n=17   <= Angela, Angela C. Reyes
+  Carlos Chinchilla      [darwin+mauricio ] Contract $20    h=76.0    $544.00     n=8    <= Carlos Chinchilla, carlos Chinchilla
+  Ever                   [darwin+mauricio ] Hourly   $19    h=21.0    $599.00     n=4    <= Ever
+  Flor Helena            [darwin+mauricio ] Contract $20    h=1447.0  $80489.51   n=97   <= Flor, Flor Helena
+  Gustavo Chinchilla     [darwin+mauricio ] Contract        h=142.0   $52628.37   n=28   <= Gustavo, Gustavo Chinchilla
+  Ismael Velasquez       [darwin+mauricio ] Fixed    $900   h=1160.0  $20844.81   n=47   <= Ismael, Ismael Velasquez
+  Jairo                  [darwin+mauricio ] Hourly   $16    h=1796.0  $29419.00   n=218  <= Jairo
+  Jason                  [darwin+mauricio ] Hourly   $18    h=0.0     $0.00       n=0    <= 
+  Johnny Handal          [darwin+mauricio ] Contract        h=75.0    $74418.38   n=21   <= Jhonny, Jhonny Handal, Jhonny Handal R., Johnny, Johnny Handal
+  Kathy Mejia            [darwin+mauricio ] Fixed    $200   h=1138.0  $5800.00    n=64   <= Kathy, Kathy Mejia
+  Marcos Castro          [darwin+mauricio ] Per Day  $250   h=346.0   $10124.00   n=45   <= Marcos (Carlos), Marcos Castro
+  Melissa Ramos          [darwin+mauricio ] Hourly   $20    h=1175.5  $12666.00   n=165  <= Melissa, Melissa Ramos
+  Misael                 [darwin+mauricio ] Hourly   $20    h=1704.0  $34726.00   n=206  <= Misael
+  Nery Josue Ramos       [darwin+mauricio ] Hourly   $18    h=1684.0  $16686.00   n=191  <= Nery, Nery Josue Ramos
+  Oscar Mejia            [darwin+mauricio ] Fixed    $1000  h=1275.0  $12997.32   n=47   <= Oscar, Oscar Mejia
+  Rene Mejia             [darwin+mauricio ] Hourly   $20    h=1378.5  $37778.52   n=158  <= Rene, Rene Mejia
+  Russel                 [darwin+mauricio ] Per Day  $220   h=1595.0  $55538.63   n=244  <= Russel
+  sergio                 [darwin+mauricio ] Contract        h=8.0     $1800.00    n=2    <= sergio
+  Victor Handal          [darwin+mauricio ] Contract        h=9.0     $5647.00    n=2    <= Victor Handal
+  Wilfredo               [darwin+mauricio ] Contract        h=175.0   $32270.59   n=17   <= Wilfredo
+  Wilmer Castellanos     [darwin+mauricio ] Hourly   $21    h=661.5   $15426.50   n=67   <= Wilmer (cuñado de Darwing), Wilmer Castellano, Wilmer Castellanos
+  Yoanna                 [darwin+mauricio ] Fixed           h=66.0    $90.00      n=6    <= Yoanna
+
+— DARWIN ONLY —
+  Edwin Mejia            [darwin          ] Contract $150   h=1.0     $150.00     n=1    <= Edwin mejia
+  Erasmo                 [darwin          ] Contract        h=0.0     $2980.00    n=1    <= Erasmo
+  Esmeralda              [darwin          ] Hourly   $20    h=29.5    $590.00     n=3    <= Esmeralda
+  Gaby                   [darwin          ] Hourly   $18    h=77.0    $1386.00    n=9    <= Gaby
+  Gladiz                 [darwin          ] Contract        h=1.0     $1000.00    n=1    <= Gladiz
+  jostin                 [darwin          ] Hourly   $19    h=17.0    $323.00     n=1    <= jostin
+  Juan Carlos (Calin)    [darwin          ] Contract        h=396.0   $475504.54  n=35   <= Calin, Juan Carlos (calin)
+  Karla Perez            [darwin          ] Fixed    $700   h=368.0   $13450.00   n=17   <= Karla Perez
+  Leone Angeles          [darwin          ] Contract        h=5.0     $402225.44  n=9    <= Leone Angeles
+  Oscar Hernandez        [darwin          ] Hourly   $21    h=24.0    $672.00     n=4    <= Oscar Hernandez
+  Silvia                 [darwin          ] Contract        h=2.0     $1300.00    n=2    <= Silvia
+  William                [darwin          ] Contract        h=0.0     $500.00     n=1    <= William
+  Yoni Reyes             [darwin          ] Contract        h=0.0     $2288.00    n=5    <= Yoni Reyes
+
+— MAURICIO ONLY —
+  Alex Bermudes          [mauricio        ] Hourly   $19    h=83.5    $1425.00    n=10   <= Alex Bermudes, Alex Bermudez
+  Ariel                  [mauricio        ] Hourly   $20    h=154.5   $3090.00    n=20   <= Ariel
+  Carlos Gonzales        [mauricio        ] Contract        h=0.0     $5174.04    n=2    <= Carlos Gonzales  ⚑ Distinct from Carlos Chinchilla
+  Emerson                [mauricio        ] Hourly   $22    h=14.0    $154.00     n=2    <= Emerson, Emerson (Lala)
+  Javvar                 [mauricio        ] Hourly   $18    h=50.0    $982.00     n=5    <= Javvar
+  Jeimy                  [mauricio        ] Hourly   $18    h=121.0   $2178.00    n=15   <= Jeimy
+  Jennifer Silva         [mauricio        ] Hourly   $16    h=43.5    $696.00     n=6    <= Jennifer Silva
+  Jonathan               [mauricio        ] Hourly   $19    h=6.0     $114.00     n=1    <= Jonathan
+  Juan                   [mauricio        ] Contract        h=8.0     $1000.00    n=1    <= Juan
+  La mujer Ever          [mauricio        ] Hourly   $17    h=9.0     $162.00     n=1    <= La mujer Ever  ⚑ Distinct from "Ever" (labelled "the woman Ever")
+  Luan Flooring          [mauricio        ] Contract        h=0.0     $4650.00    n=3    <= Luan, Luan Flooring  ⚑ Subcontractor (flooring)
+  Manuel                 [mauricio        ] Hourly   $21    h=30.5    $640.50     n=3    <= Manuel
+  Marlon                 [mauricio        ] Hourly   $17    h=0.0     $0.00       n=0    <= 
+  Rango                  [mauricio        ] Hourly   $22    h=48.0    $1080.00    n=3    <= Rango
+  Ruby                   [mauricio        ] Hourly   $18    h=149.5   $2691.00    n=18   <= Ruby
+  Steven                 [mauricio        ] Hourly   $17    h=85.0    $1445.00    n=13   <= Steven
+  Wendy                  [mauricio        ] Hourly   $17    h=81.5    $1385.50    n=10   <= Wendy
+
+— UNMAPPED Darwin names (not imported) —
+— UNMAPPED Mauricio names (not imported) —
+
+— SAME-DAY CO-OCCURRENCE (variants of one person on same date+team; review) — 2 found
+  Alex Bermudes @ 2025-08-22 [mauricio]: ['Alex Bermudes', 'Alex Bermudez']
+  Emerson @ 2025-12-13 [mauricio]: ['Emerson', 'Emerson (Lala)']

@@ -1,0 +1,6 @@
+dist
+node_modules
+design
+public
+package-lock.json
+src/lib/macPainters.js
