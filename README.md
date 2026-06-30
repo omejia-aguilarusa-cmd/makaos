@@ -29,21 +29,21 @@ npm run preview  # preview the production build
 
 ## What's inside
 
+Everything runs on the **real merged payroll** — Darwin and Mauricio are partners
+in one company (Mac Painters) who share/borrow painters, so their two books are
+merged into one de‑duplicated roster. No demo data.
+
 | Area | Screens / features |
 | --- | --- |
-| **Command Center** | KPIs, active projects, at‑risk, milestones, activity feed, "Ask Claude" prompts |
-| **Schedule** | Interactive Gantt — day/week/month zoom, group by project or painter, bars with progress, milestones, conflict detection, today line |
-| **Projects** | Searchable, status‑filtered cards with revenue / cost / profit / margin and progress |
-| **Painters** | Crew‑filtered roster table with pay, hours, availability, and active‑project chips |
-| **Mac Painters** | The real merged payroll (Darwin + Mauricio partners): one de‑duplicated roster, a Team toggle (Both / Darwin / Mauricio) and a date range that recompute accurate hours & recorded $ for any window |
-| **Payroll** | Real **Mac Painters** payroll (with a Demo‑cycle toggle): pick a team + pay period and get est. gross, additions, deductions and net per employee |
-| **Reports** | A library of payroll, labor, P&L, change‑order and productivity reports |
-| **Change orders / Expenses / Time logs / Addresses** | Operational tables across every project |
+| **Dashboard** | Real KPIs (active painters, hours, wages vs. contract billing, entries), top painters by hours, a Darwin‑vs‑Mauricio split, and recent activity |
+| **Schedule** | A work timeline — weekly hours heatmap per painter, team‑coloured (Darwin / Mauricio / both), darker = more hours |
+| **Mac Painters** | The merged roster: a Team toggle (Both / Darwin / Mauricio) + date range, est. wages, name‑variant `aka` lines, and a click‑through drawer with each painter's daily log |
+| **Payroll** | Pick a team + pay period: est. gross, additions, deductions and net per painter, with wages vs. contract‑billing split and CSV export |
+| **Time logs** | Every recorded entry (date, painter, team, location, hours, base/additions/deductions/net, notes), filterable by team / date / search, with CSV export |
 | **Integrations** | Connect/disconnect Google Sheets, Drive, Calendar, Gmail, Claude, QuickBooks, Slack |
-| **Assistant** | Copilot that answers from the live workspace data — runs a model **on-device** (WebLLM) with no API key, or falls back to a built‑in responder |
-| **Overlays** | Project & painter drawers, schedule‑block popover, ⌘K universal search, and change‑order / expense / bulk‑hours forms |
+| **Assistant** | Copilot that answers from the real payroll — runs a model **on‑device** (WebLLM) with no API key, or falls back to a built‑in responder |
 
-Keyboard: **⌘K / Ctrl‑K** opens universal search, **Esc** closes any overlay.
+Keyboard: **⌘K / Ctrl‑K** searches the roster, **Esc** closes overlays.
 
 ## Project layout
 

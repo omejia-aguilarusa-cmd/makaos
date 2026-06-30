@@ -11,8 +11,8 @@ export default function AssistantScreen({ v }) {
       <div style={css('display:flex;align-items:center;gap:11px;padding:13px 18px;border-bottom:1px solid var(--line);flex-shrink:0')}>
         <div style={css('width:34px;height:34px;border-radius:9px;background:rgba(217,119,87,.18);border:1px solid rgba(217,119,87,.45);display:grid;place-items:center;color:#e8927c;flex-shrink:0')}>{v.icSparkleSm}</div>
         <div style={css('flex:1;min-width:0')}>
-          <div style={css('font-size:13.5px;font-weight:700')}>Claude · Maka copilot</div>
-          <div style={css('font-size:11px;color:var(--faint)')}>Reads your live workspace — projects, payroll, schedule, expenses</div>
+          <div style={css('font-size:13.5px;font-weight:700')}>Claude · Mac Painters copilot</div>
+          <div style={css('font-size:11px;color:var(--faint)')}>Reads your real payroll — Darwin + Mauricio, hours, wages, crew</div>
         </div>
         {v.ai.status === 'ready' ? (
           <Pill led="ok" tone="paper">ON-DEVICE · {v.aiLabel}</Pill>
@@ -82,13 +82,13 @@ export default function AssistantScreen({ v }) {
           ))}
         </div>
         <div style={{ ...css('display:flex;gap:9px;align-items:flex-end;background:var(--input-bg);border:1px solid var(--line);border-radius:11px;padding:9px 9px 9px 13px'), ...(inputFocused ? { borderColor: 'var(--line-strong)' } : {}) }}>
-          <textarea ref={v.chatInputRef} onKeyDown={v.onChatKey} onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)} rows="1" placeholder="Ask about margins, payroll, schedule, or a specific job…" style={css('flex:1;background:transparent;border:0;outline:none;resize:none;color:var(--text);font-size:13px;line-height:1.5;max-height:120px;font-family:var(--font-ui)')}></textarea>
+          <textarea ref={v.chatInputRef} onKeyDown={v.onChatKey} onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)} rows="1" placeholder="Ask about hours, wages, a team, or a painter…" style={css('flex:1;background:transparent;border:0;outline:none;resize:none;color:var(--text);font-size:13px;line-height:1.5;max-height:120px;font-family:var(--font-ui)')}></textarea>
           <button onClick={v.chatSend} style={css('width:32px;height:32px;border-radius:8px;background:var(--blue);color:#fff;border:0;display:grid;place-items:center;cursor:pointer;flex-shrink:0')}>{v.icSend}</button>
         </div>
         <div style={css('font-size:10px;color:var(--faint-2);margin-top:8px;text-align:center')}>
           {v.ai.status === 'ready'
-            ? `Answers run on-device (${v.aiLabel}) over your sample workspace data. AI-generated — verify before acting.`
-            : 'Reads your sample workspace data. Responses are AI-generated — verify before acting.'}
+            ? `Answers run on-device (${v.aiLabel}) over your Mac Painters payroll. AI-generated — verify before acting.`
+            : 'Reads your Mac Painters payroll. Responses are AI-generated — verify before acting.'}
         </div>
       </div>
     </div>

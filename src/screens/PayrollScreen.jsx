@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { css } from '../lib/css.js'
-import { Box } from '../ui/Box.jsx'
-import { StatCard, Badge } from '../ds/index.jsx'
+import { Badge, StatCard } from '../ds/index.jsx'
 import { payroll, money, fmtH, fmtDate, META, TEAM_LABEL, TEAM_COLOR, CATEGORIES, CATEGORY_LABEL } from '../lib/macPayroll.js'
 import { downloadCSV } from '../lib/csv.js'
 
@@ -13,64 +12,15 @@ const segStyle = (active) => {
 }
 const dateInput = 'background:var(--input-bg);border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-size:12.5px;color:var(--text);outline:none;font-family:var(--font-mono)'
 
-export default function PayrollScreen({ v }) {
-  const [mode, setMode] = useState('mac')
+// Real Mac Painters payroll: pick a team + pay period; wages and contract
+// billing are split so subcontractor job values don't inflate the wage totals.
+export default function PayrollScreen() {
   const [team, setTeam] = useState('both')
   const [cat, setCat] = useState('all')
   const [from, setFrom] = useState(META.dateMin)
   const [to, setTo] = useState(META.dateMax)
   const { rows, totals } = useMemo(() => payroll(team, from, to, {}), [team, from, to])
   const tableRows = useMemo(() => (cat === 'all' ? rows : rows.filter((r) => r.category === cat)).slice().sort((a, b) => b.value - a.value), [rows, cat])
-
-  const ModeToggle = (
-    <div style={css('display:inline-flex;background:var(--inset);border:1px solid var(--line-soft);border-radius:8px;padding:2px;gap:2px')}>
-      <button onClick={() => setMode('mac')} style={css(segStyle(mode === 'mac'))}>Mac Painters · real</button>
-      <button onClick={() => setMode('demo')} style={css(segStyle(mode === 'demo'))}>Demo cycle</button>
-    </div>
-  )
-
-  if (mode === 'demo') {
-    return (
-      <div style={css('height:100%;display:flex;flex-direction:column;min-height:0')}>
-        <div style={css('display:flex;gap:10px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-shrink:0')}>
-          {ModeToggle}
-          <span style={css('display:inline-flex;align-items:center;gap:6px;background:var(--inset);border:1px solid var(--line-soft);border-radius:7px;padding:5px 10px;font-size:11.5px;color:var(--muted);font-family:var(--font-mono)')}>Apr 27 – May 3, 2026 · Weekly</span>
-          <div style={css('flex:1')}></div>
-          <button onClick={v.payBulk} style={css('display:inline-flex;align-items:center;gap:6px;background:var(--panel-2);border:1px solid var(--line);border-radius:7px;padding:6px 11px;font-size:12px;font-weight:600;color:var(--text);cursor:pointer')}>Bulk log hours</button>
-          <button onClick={v.payExport} style={css('display:inline-flex;align-items:center;gap:6px;background:var(--panel-2);border:1px solid var(--line);border-radius:7px;padding:6px 11px;font-size:12px;font-weight:600;color:var(--text);cursor:pointer')}>Export</button>
-          <button onClick={v.payApprove} style={css('display:inline-flex;align-items:center;gap:6px;background:var(--blue);color:#fff;border:1px solid transparent;border-radius:7px;padding:6px 12px;font-size:12.5px;font-weight:700;cursor:pointer')}>Review &amp; approve</button>
-        </div>
-        <div style={css('flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:14px')}>
-          <div style={css('display:grid;grid-template-columns:repeat(5,1fr);gap:11px')}>
-            {v.payKpis.map((k, i) => <StatCard key={i} label={k.label} value={k.value} sub={k.sub} tone={k.tone} />)}
-          </div>
-          <div style={css('border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)')}>
-            <table style={css('width:100%;border-collapse:collapse;font-size:12.5px')}>
-              <thead><tr>
-                <th style={css(th())}>Employee</th><th style={css(th())}>Project</th><th style={css(th('right'))}>Reg</th><th style={css(th('right'))}>OT</th>
-                <th style={css(th('right'))}>Rate</th><th style={css(th('right'))}>Gross</th><th style={css(th('right'))}>Deduction</th><th style={css(th('right'))}>Net</th><th style={css(th())}>Status</th>
-              </tr></thead>
-              <tbody>
-                {v.payRows.map((r) => (
-                  <Box as="tr" key={r.id} onClick={r.onOpen} style={css('cursor:pointer')} hover="background:var(--panel-2)">
-                    <td style={css(td)}><div style={css('display:flex;align-items:center;gap:8px')}><div style={r.avatarStyle}>{r.initials}</div><span style={css('font-weight:600')}>{r.name}</span></div></td>
-                    <td style={css(td + ';color:var(--muted)')}>{r.project}</td>
-                    <td style={css(td + ';text-align:right;font-family:var(--font-mono)')}>{r.regS}</td>
-                    <td style={css(td + ';text-align:right;font-family:var(--font-mono);color:var(--amber)')}>{r.otS}</td>
-                    <td style={css(td + ';text-align:right;font-family:var(--font-mono)')}>{r.rateS}</td>
-                    <td style={css(td + ';text-align:right;font-family:var(--font-mono)')}>{r.grossS}</td>
-                    <td style={css(td + ';text-align:right;font-family:var(--font-mono);color:var(--red)')}>{r.dedS}</td>
-                    <td style={css(td + ';text-align:right;font-family:var(--font-mono);font-weight:700;color:var(--green)')}>{r.netS}</td>
-                    <td style={css(td)}><Badge color={r.statusColor}>{r.status}</Badge></td>
-                  </Box>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   const exportCSV = () => {
     const headers = ['Employee', 'Role', 'Pay type', 'Rate', 'Teams', 'Category', 'Hours', 'Days', 'Est. gross', 'Base', 'Additions', 'Deductions', 'Net', 'Entries', 'Last active']
@@ -81,7 +31,6 @@ export default function PayrollScreen({ v }) {
   return (
     <div style={css('height:100%;display:flex;flex-direction:column;min-height:0')}>
       <div style={css('display:flex;gap:10px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-shrink:0;flex-wrap:wrap')}>
-        {ModeToggle}
         <div style={css('display:inline-flex;background:var(--inset);border:1px solid var(--line-soft);border-radius:8px;padding:2px;gap:2px')}>
           {['both', 'darwin', 'mauricio'].map((t) => <button key={t} onClick={() => setTeam(t)} style={css(segStyle(team === t))}>{TEAM_LABEL[t]}</button>)}
         </div>

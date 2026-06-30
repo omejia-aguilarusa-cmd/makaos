@@ -28,26 +28,14 @@ export function Sidebar({ v }) {
         <div style={css('width:31px;height:31px;border-radius:9px;background:var(--grad-logo);display:grid;place-items:center;color:#fff;font-weight:800;font-size:16px;letter-spacing:-.04em;box-shadow:inset 0 -1px 0 rgba(0,0,0,.3),0 2px 7px rgba(19,135,255,.35)')}>M</div>
         <div style={css('line-height:1.15')}>
           <div style={css('font-size:14px;font-weight:800;letter-spacing:-.01em')}>Maka OS</div>
-          <div style={css('font-size:10.5px;color:var(--faint);letter-spacing:.03em')}>Operations</div>
+          <div style={css('font-size:10.5px;color:var(--faint);letter-spacing:.03em')}>Mac Painters</div>
         </div>
       </div>
 
       {v.navMain.map((n) => <NavRow key={n.id} n={n} />)}
 
-      <div style={css('font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint-2);padding:14px 10px 5px;font-weight:700')}>Operations</div>
-      {v.navOps.map((n) => <NavRow key={n.id} n={n} />)}
-
       <div style={css('font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint-2);padding:14px 10px 5px;font-weight:700')}>Workspace</div>
       {v.navWork.map((n) => <NavRow key={n.id} n={n} />)}
-
-      <div style={css('font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint-2);padding:14px 10px 5px;font-weight:700')}>Crews</div>
-      {v.crews.map((c) => (
-        <Box key={c.name} style={css('display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:8px;color:var(--muted);font-size:13px')} hover="background:var(--panel-2)">
-          <span style={{ ...css('width:9px;height:9px;border-radius:50%;margin-left:3px;flex-shrink:0'), background: c.color }} />
-          <span style={css('flex:1')}>{c.name}</span>
-          <span style={css('font-family:var(--font-mono);font-size:11px;color:var(--faint)')}>{c.count}</span>
-        </Box>
-      ))}
 
       <div style={css('margin-top:auto;display:flex;flex-direction:column;gap:9px;padding-top:12px')}>
         <div style={css('display:flex;align-items:center;gap:9px;padding:8px 9px;background:var(--panel);border:1px solid var(--line-soft);border-radius:8px')}>
@@ -59,10 +47,10 @@ export function Sidebar({ v }) {
           <span style={css('font-family:var(--font-mono);font-size:9.5px;color:var(--faint-2)')}>{v.syncTime}</span>
         </div>
         <div style={css('display:flex;align-items:center;gap:9px;padding:4px 4px;border-top:1px solid var(--line-soft);padding-top:10px')}>
-          <div style={css('width:28px;height:28px;border-radius:50%;background:linear-gradient(140deg,#ffac18,#ff454f);color:#0b0e14;font-size:11px;font-weight:800;display:grid;place-items:center;flex-shrink:0')}>RV</div>
+          <div style={css('width:28px;height:28px;border-radius:50%;background:linear-gradient(140deg,#1387ff,#2a5fff);color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center;flex-shrink:0')}>OM</div>
           <div style={css('line-height:1.2;flex:1;min-width:0')}>
-            <div style={css('font-size:12px;font-weight:600')}>Rosa Velasquez</div>
-            <div style={css('font-size:10.5px;color:var(--faint)')}>Operations manager</div>
+            <div style={css('font-size:12px;font-weight:600')}>Oscar Mejia</div>
+            <div style={css('font-size:10.5px;color:var(--faint)')}>Business Manager</div>
           </div>
         </div>
       </div>

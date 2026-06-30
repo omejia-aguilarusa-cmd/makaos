@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react'
 import { css } from '../lib/css.js'
-import { Box } from '../ui/Box.jsx'
 import { Badge } from '../ds/index.jsx'
 import { filterEntries, employeeById, money, fmtH, fmtDate, META, TEAM_LABEL, TEAM_COLOR } from '../lib/macPayroll.js'
 import { downloadCSV } from '../lib/csv.js'
@@ -14,8 +13,9 @@ const segStyle = (active) => {
 const dateInput = 'background:var(--input-bg);border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-size:12.5px;color:var(--text);outline:none;font-family:var(--font-mono)'
 const CAP = 600
 
-export default function TimeLogsScreen({ v }) {
-  const [mode, setMode] = useState('mac')
+// Every recorded payroll entry across both partners, filterable by team / date /
+// search. The full daily log behind the roster and payroll.
+export default function TimeLogsScreen() {
   const [team, setTeam] = useState('both')
   const [from, setFrom] = useState(META.dateMin)
   const [to, setTo] = useState(META.dateMax)
@@ -29,49 +29,6 @@ export default function TimeLogsScreen({ v }) {
       .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : a.name.localeCompare(b.name)))
   }, [team, from, to, q])
 
-  const ModeToggle = (
-    <div style={css('display:inline-flex;background:var(--inset);border:1px solid var(--line-soft);border-radius:8px;padding:2px;gap:2px')}>
-      <button onClick={() => setMode('mac')} style={css(segStyle(mode === 'mac'))}>Mac Painters · real</button>
-      <button onClick={() => setMode('demo')} style={css(segStyle(mode === 'demo'))}>Demo</button>
-    </div>
-  )
-
-  if (mode === 'demo') {
-    return (
-      <div style={css('height:100%;display:flex;flex-direction:column;min-height:0')}>
-        <div style={css('display:flex;gap:10px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-shrink:0')}>
-          {ModeToggle}
-          <span style={css('font-size:12.5px;color:var(--muted)')}>All recorded hours across crews</span>
-          <div style={css('flex:1')}></div>
-          <button onClick={v.logHoursTop} style={css('display:inline-flex;align-items:center;gap:6px;background:var(--blue);color:#fff;border:1px solid transparent;border-radius:7px;padding:6px 12px;font-size:12.5px;font-weight:700;cursor:pointer')}>+ Log hours</button>
-        </div>
-        <div style={css('flex:1;overflow:auto;padding:16px')}>
-          <div style={css('border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)')}>
-            <table style={css('width:100%;border-collapse:collapse;font-size:12.5px')}>
-              <thead><tr>
-                <th style={css(th())}>Employee</th><th style={css(th())}>Project</th><th style={css(th())}>Date</th>
-                <th style={css(th('right'))}>Reg</th><th style={css(th('right'))}>OT</th><th style={css(th())}>Notes</th><th style={css(th())}>Status</th>
-              </tr></thead>
-              <tbody>
-                {v.tlRows.map((l) => (
-                  <Box as="tr" key={l.id} onClick={l.onOpen} style={css('cursor:pointer')} hover="background:var(--panel-2)">
-                    <td style={css(td)}><div style={css('display:flex;align-items:center;gap:8px')}><div style={l.avatarStyle}>{l.initials}</div><span style={css('font-weight:600')}>{l.name}</span></div></td>
-                    <td style={css(td + ';color:var(--muted)')}>{l.project}</td>
-                    <td style={css(td + ';font-family:var(--font-mono);color:var(--faint)')}>{l.date}</td>
-                    <td style={css(td + ';text-align:right;font-family:var(--font-mono)')}>{l.reg}</td>
-                    <td style={css(td + ';text-align:right;font-family:var(--font-mono);color:var(--amber)')}>{l.ot}</td>
-                    <td style={css(td + ';color:var(--faint)')}>{l.notes}</td>
-                    <td style={css(td)}><Badge color={l.statusColor}>{l.status}</Badge></td>
-                  </Box>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   const exportCSV = () => {
     const headers = ['Date', 'Employee', 'Team', 'Location', 'Hours', 'Base', 'Additions', 'Deductions', 'Net', 'Notes']
     const data = entries.map((e) => [e.date, e.name, e.team, e.location, e.hours, e.subtotal, e.addition, e.deduction, e.total, e.notes])
@@ -83,7 +40,6 @@ export default function TimeLogsScreen({ v }) {
   return (
     <div style={css('height:100%;display:flex;flex-direction:column;min-height:0')}>
       <div style={css('display:flex;gap:10px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-shrink:0;flex-wrap:wrap')}>
-        {ModeToggle}
         <div style={css('display:inline-flex;background:var(--inset);border:1px solid var(--line-soft);border-radius:8px;padding:2px;gap:2px')}>
           {['both', 'darwin', 'mauricio'].map((t) => <button key={t} onClick={() => setTeam(t)} style={css(segStyle(team === t))}>{TEAM_LABEL[t]}</button>)}
         </div>
