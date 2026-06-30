@@ -2,6 +2,7 @@ import React from 'react'
 import { css } from '../lib/css.js'
 import { Box } from '../ui/Box.jsx'
 import { Badge } from '../ds/index.jsx'
+import { EmptyState } from '../ui/Empty.jsx'
 
 // Expenses (ops). Ported 1:1 from the source template's isExpenses block.
 export default function ExpensesScreen({ v }) {
@@ -26,7 +27,7 @@ export default function ExpensesScreen({ v }) {
               <th style={css('text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:700;padding:9px 11px;border-bottom:1px solid var(--line);background:var(--panel-2)')}>Status</th>
             </tr></thead>
             <tbody>
-              {v.expRows.map((e) => (
+              {v.hasExpRows ? v.expRows.map((e) => (
                 <Box as="tr" key={e.id} onClick={e.onOpen} style={css('cursor:pointer')} hover="background:var(--panel-2)">
                   <td style={css('padding:9px 11px;border-bottom:1px solid var(--line-soft);font-weight:600')}>{e.title}</td>
                   <td style={css('padding:9px 11px;border-bottom:1px solid var(--line-soft)')}><Badge color="default">{e.category}</Badge></td>
@@ -36,7 +37,7 @@ export default function ExpensesScreen({ v }) {
                   <td style={css('padding:9px 11px;border-bottom:1px solid var(--line-soft);text-align:right;font-family:var(--font-mono);font-weight:700')}>{e.amount}</td>
                   <td style={css('padding:9px 11px;border-bottom:1px solid var(--line-soft)')}><Badge color={e.statusColor}>{e.status}</Badge></td>
                 </Box>
-              ))}
+              )) : <tr><td colSpan={7}><EmptyState title="No expenses" hint="Sample expenses were cleared." /></td></tr>}
             </tbody>
           </table>
         </div>

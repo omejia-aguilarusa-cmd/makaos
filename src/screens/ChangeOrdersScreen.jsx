@@ -2,6 +2,7 @@ import React from 'react'
 import { css } from '../lib/css.js'
 import { Box } from '../ui/Box.jsx'
 import { Badge } from '../ds/index.jsx'
+import { EmptyState } from '../ui/Empty.jsx'
 
 export default function ChangeOrdersScreen({ v }) {
   return (
@@ -24,7 +25,7 @@ export default function ChangeOrdersScreen({ v }) {
               <th style={css('text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:700;padding:9px 11px;border-bottom:1px solid var(--line);background:var(--panel-2)')}>Status</th>
             </tr></thead>
             <tbody>
-              {v.coRows.map((c) => (
+              {v.hasCORows ? v.coRows.map((c) => (
                 <Box as="tr" key={c.id} onClick={c.onOpen} style={css('cursor:pointer')} hover="background:var(--panel-2)">
                   <td style={css('padding:9px 11px;border-bottom:1px solid var(--line-soft)')}><div style={css('font-weight:600')}>{c.title}</div><div style={css('font-size:11px;color:var(--faint)')}>{c.desc}</div></td>
                   <td style={css('padding:9px 11px;border-bottom:1px solid var(--line-soft);color:var(--muted)')}>{c.project}</td>
@@ -33,7 +34,7 @@ export default function ChangeOrdersScreen({ v }) {
                   <td style={css('padding:9px 11px;border-bottom:1px solid var(--line-soft);text-align:right;font-family:var(--font-mono);color:var(--green)')}>{c.profit}</td>
                   <td style={css('padding:9px 11px;border-bottom:1px solid var(--line-soft)')}><Badge color={c.statusColor}>{c.status}</Badge></td>
                 </Box>
-              ))}
+              )) : <tr><td colSpan={6}><EmptyState title="No change orders" hint="Sample change orders were cleared." /></td></tr>}
             </tbody>
           </table>
         </div>

@@ -96,8 +96,8 @@ export function Topbar({ v }) {
 export function SafetyBanner({ v }) {
   return (
     <div style={css('display:flex;align-items:center;gap:10px;padding:7px 16px;background:var(--cyan-soft);border-bottom:1px solid var(--cyan-line);font-size:11.5px;color:var(--cyan);flex-shrink:0')}>
-      <span style={css('font-weight:800;letter-spacing:.06em')}>SANDBOX</span>
-      <span style={css('color:var(--muted)')}>Sample dataset · connect real tools in Integrations. No external data is sent from this preview.</span>
+      <span style={css('font-weight:800;letter-spacing:.06em')}>LOCAL WORKSPACE</span>
+      <span style={css('color:var(--muted)')}>Real Mac Painters data · saved in this browser. Connect tools in Integrations to sync and back it up.</span>
       <button onClick={v.goIntegrations} style={css('margin-left:auto;background:transparent;border:1px solid var(--cyan-line);color:var(--cyan);border-radius:6px;padding:2px 9px;font-size:11px;font-weight:700;cursor:pointer')}>Manage</button>
     </div>
   )

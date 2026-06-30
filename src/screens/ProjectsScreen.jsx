@@ -2,6 +2,7 @@ import React from 'react'
 import { css } from '../lib/css.js'
 import { Box } from '../ui/Box.jsx'
 import { Badge } from '../ds/index.jsx'
+import { EmptyState } from '../ui/Empty.jsx'
 
 export default function ProjectsScreen({ v }) {
   return (
@@ -18,7 +19,7 @@ export default function ProjectsScreen({ v }) {
       </div>
       <div style={css('flex:1;overflow:auto;padding:16px')}>
         <div style={css('display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px')}>
-          {v.projectCards.map((p) => (
+          {v.hasProjects ? v.projectCards.map((p) => (
             <Box key={p.id} onClick={p.onOpen} style={css('background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:13px;cursor:pointer;display:flex;flex-direction:column;gap:11px')} hover="border-color:var(--line-strong)">
               <div style={css('display:flex;align-items:flex-start;gap:10px')}>
                 <span style={{ ...css('width:4px;align-self:stretch;border-radius:2px'), background: p.color }}></span>
@@ -39,7 +40,7 @@ export default function ProjectsScreen({ v }) {
                 <div style={css('height:5px;border-radius:999px;background:var(--inset);overflow:hidden')}><div style={p.progressFill}></div></div>
               </div>
             </Box>
-          ))}
+          )) : <EmptyState title="No projects yet" hint="The sample jobs were cleared. Your real crew, hours and payroll are in the Mac Painters view." actionLabel="View Mac Painters" onAction={v.goMacPainters} />}
         </div>
       </div>
     </div>

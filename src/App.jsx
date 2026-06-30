@@ -35,12 +35,12 @@ export default class App extends React.Component {
 
   constructor(props) {
     super(props)
-    this.KEY = 'makaos.dark.v1'
+    this.KEY = 'makaos.maka.v2'
     this.db = this.buildDB()
     const s = this.load()
     this.state = {
       view: s.view || (props.defaultView || 'home'),
-      connections: s.connections || { sheets: true, drive: true, calendar: false, gmail: false, claude: true, quickbooks: false, slack: false },
+      connections: s.connections || { sheets: false, drive: false, calendar: false, gmail: false, claude: false, quickbooks: false, slack: false },
       chat: s.chat || [{ role: 'assistant', text: "I'm your Maka OS copilot. Ask me about margins, schedule risk, payroll, or any project — I can read everything in your workspace." }],
       extras: s.extras || { expenses: [], timeLogs: [], cos: [] },
       drawer: null, drawerTab: 'overview',
@@ -82,6 +82,7 @@ export default class App extends React.Component {
   addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x }
   dayDiff(a, b) { return Math.round((b - a) / 86400000) }
   fmtDate(d) { return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }
+  cycleLabel() { const t = this.db.today, dow = (t.getDay() + 6) % 7, mon = this.addDays(t, -dow), sun = this.addDays(mon, 6); return this.fmtDate(mon) + ' – ' + this.fmtDate(sun) + ', ' + sun.getFullYear() }
   fmtMoney(n, opts = {}) {
     if (n == null) return '—'
     const sign = n < 0 ? '-' : ''
@@ -156,106 +157,10 @@ export default class App extends React.Component {
 
   // ---------- data ----------
   buildDB() {
-    const D = (mo, d) => new Date(2026, mo - 1, d)
-    const today = new Date(2026, 4, 1)
-    const clients = [
-      { id: 'c1', name: 'Halsted Residences', contact: 'Marin Aldridge', email: 'marin@halsted.co', phone: '(312) 555-0148' },
-      { id: 'c2', name: 'Northbrook Hospitality Group', contact: 'Devon Park', email: 'devon@nhg.com', phone: '(847) 555-0192' },
-      { id: 'c3', name: 'Greene & Atlas Office', contact: 'Priya Shah', email: 'priya@greeneatlas.com', phone: '(312) 555-0124' },
-      { id: 'c4', name: 'Linden Public Schools', contact: 'Carl Ortiz', email: 'cortiz@lps.k12', phone: '(708) 555-0107' },
-      { id: 'c5', name: 'Riverside Medical Center', contact: 'Anita Vaughn', email: 'avaughn@rmc.org', phone: '(312) 555-0163' },
-    ]
-    const painters = [
-      { id: 'p1', name: 'Mateo Reyes', role: 'Lead Painter', crew: 'Crew A', color: 'blue', pay: { type: 'Hourly', rate: 38, ot: '1.5x after 40' }, avail: 'available', phone: '(312) 555-0177', start: '2021-06-12' },
-      { id: 'p2', name: 'Lena Kowalski', role: 'Painter', crew: 'Crew A', color: 'teal', pay: { type: 'Hourly', rate: 32, ot: '1.5x after 40' }, avail: 'available', phone: '(312) 555-0182', start: '2022-03-04' },
-      { id: 'p3', name: 'Jamal Wright', role: 'Painter', crew: 'Crew A', color: 'green', pay: { type: 'Hourly', rate: 30, ot: '1.5x after 40' }, avail: 'pto', phone: '(312) 555-0193', start: '2023-01-22' },
-      { id: 'p4', name: 'Anika Patel', role: 'Lead Painter', crew: 'Crew B', color: 'violet', pay: { type: 'Salary', rate: 1730, period: 'weekly' }, avail: 'available', phone: '(312) 555-0114', start: '2020-09-09' },
-      { id: 'p5', name: 'Dario Conti', role: 'Painter', crew: 'Crew B', color: 'amber', pay: { type: 'Hourly', rate: 34, ot: '1.5x after 40' }, avail: 'available', phone: '(312) 555-0145', start: '2022-08-15' },
-      { id: 'p6', name: 'Ines Marchetti', role: 'Apprentice', crew: 'Crew B', color: 'rose', pay: { type: 'Hourly', rate: 22, ot: '1.5x after 40' }, avail: 'available', phone: '(312) 555-0152', start: '2024-02-19' },
-      { id: 'p7', name: 'Owen Brennan', role: 'Painter', crew: 'Crew C', color: 'slate', pay: { type: 'Per Day', rate: 320 }, avail: 'busy', phone: '(312) 555-0188', start: '2023-05-30' },
-      { id: 'p8', name: 'Sasha Volkov', role: 'Foreperson', crew: 'Crew C', color: 'blue', pay: { type: 'Salary', rate: 7800, period: 'monthly' }, avail: 'available', phone: '(312) 555-0136', start: '2019-04-18' },
-      { id: 'p9', name: 'Theo Nakamura', role: 'Painter', crew: 'Crew C', color: 'teal', pay: { type: 'Hourly', rate: 31, ot: '1.5x after 40' }, avail: 'available', phone: '(312) 555-0179', start: '2023-10-02' },
-    ]
-    const projects = [
-      { id: 'pr1', name: 'Halsted Lofts — Interior Repaint', client: 'c1', address: '2418 N Halsted St, Chicago, IL', color: 'blue', status: 'In Progress', start: D(4, 18), end: D(5, 22), contract: 84500, materialBudget: 12000, laborBudget: 38500, progress: 0.42, health: 86, description: '14-unit interior repaint, lobby refinish, common-area millwork.' },
-      { id: 'pr2', name: 'Atlas Tower Lobby Refinish', client: 'c3', address: '120 W Madison, Chicago, IL', color: 'violet', status: 'In Progress', start: D(4, 25), end: D(5, 18), contract: 46200, materialBudget: 7400, laborBudget: 21800, progress: 0.55, health: 78, description: 'High-end commercial lobby — Venetian plaster + custom millwork.' },
-      { id: 'pr3', name: 'Northbrook Marriott Suites', client: 'c2', address: '1885 Lake Cook Rd, Northbrook, IL', color: 'teal', status: 'Scheduled', start: D(5, 5), end: D(6, 14), contract: 138400, materialBudget: 22000, laborBudget: 64200, progress: 0.06, health: 92, description: '88 suites, corridor refinish, exterior trim.' },
-      { id: 'pr4', name: 'Linden Elementary Summer Refresh', client: 'c4', address: '7300 Linden Ave, Forest Park, IL', color: 'green', status: 'Scheduled', start: D(5, 20), end: D(6, 28), contract: 62800, materialBudget: 9100, laborBudget: 28400, progress: 0, health: 88, description: '12 classrooms, gym epoxy, exterior trim & doors.' },
-      { id: 'pr5', name: 'Riverside Med Center — Wing C', client: 'c5', address: '500 22nd St, Maywood, IL', color: 'amber', status: 'At Risk', start: D(4, 14), end: D(5, 12), contract: 92800, materialBudget: 16400, laborBudget: 41200, progress: 0.68, health: 62, description: 'Antimicrobial coatings, after-hours work, infection-control protocols.' },
-      { id: 'pr6', name: 'Greene Plaza Exterior Trim', client: 'c3', address: '88 Greene St, Oak Park, IL', color: 'rose', status: 'Scheduled', start: D(5, 11), end: D(5, 30), contract: 28400, materialBudget: 4200, laborBudget: 13800, progress: 0, health: 80, description: 'Exterior trim, weather-dependent.' },
-    ]
-    const blocks = [
-      { id: 'b1', projectId: 'pr1', painterId: 'p1', start: D(4, 27), end: D(5, 9), hoursPerDay: 8, progress: 0.5 },
-      { id: 'b2', projectId: 'pr1', painterId: 'p2', start: D(4, 27), end: D(5, 12), hoursPerDay: 8, progress: 0.4 },
-      { id: 'b3', projectId: 'pr1', painterId: 'p6', start: D(5, 4), end: D(5, 14), hoursPerDay: 8, progress: 0.1 },
-      { id: 'b4', projectId: 'pr2', painterId: 'p4', start: D(4, 25), end: D(5, 18), hoursPerDay: 8, progress: 0.55 },
-      { id: 'b5', projectId: 'pr2', painterId: 'p5', start: D(4, 28), end: D(5, 18), hoursPerDay: 8, progress: 0.5 },
-      { id: 'b6', projectId: 'pr5', painterId: 'p8', start: D(4, 14), end: D(5, 12), hoursPerDay: 10, progress: 0.7 },
-      { id: 'b7', projectId: 'pr5', painterId: 'p9', start: D(4, 20), end: D(5, 12), hoursPerDay: 10, progress: 0.6 },
-      { id: 'b8', projectId: 'pr5', painterId: 'p7', start: D(4, 22), end: D(5, 10), hoursPerDay: 10, progress: 0.65 },
-      { id: 'b9', projectId: 'pr3', painterId: 'p1', start: D(5, 11), end: D(5, 28), hoursPerDay: 8, progress: 0 },
-      { id: 'b10', projectId: 'pr3', painterId: 'p4', start: D(5, 19), end: D(6, 14), hoursPerDay: 8, progress: 0 },
-      { id: 'b11', projectId: 'pr3', painterId: 'p2', start: D(5, 13), end: D(5, 28), hoursPerDay: 8, progress: 0 },
-      { id: 'b12', projectId: 'pr4', painterId: 'p6', start: D(5, 20), end: D(6, 18), hoursPerDay: 8, progress: 0 },
-      { id: 'b13', projectId: 'pr4', painterId: 'p3', start: D(5, 22), end: D(6, 24), hoursPerDay: 8, progress: 0 },
-      { id: 'b14', projectId: 'pr6', painterId: 'p7', start: D(5, 11), end: D(5, 24), hoursPerDay: 8, progress: 0 },
-      { id: 'b15', projectId: 'pr2', painterId: 'p1', start: D(5, 6), end: D(5, 9), hoursPerDay: 4, progress: 0.3, conflict: true },
-    ]
-    const milestones = [
-      { id: 'm1', projectId: 'pr1', date: D(5, 4), type: 'milestone', label: 'Lobby unveil' },
-      { id: 'm2', projectId: 'pr1', date: D(5, 22), type: 'deadline', label: 'Final walk-through' },
-      { id: 'm3', projectId: 'pr2', date: D(5, 12), type: 'change', label: 'CO #2 approved' },
-      { id: 'm4', projectId: 'pr5', date: D(5, 12), type: 'deadline', label: 'Hospital re-open' },
-      { id: 'm5', projectId: 'pr6', date: D(5, 16), type: 'weather', label: 'Rain — possible delay' },
-      { id: 'm6', projectId: 'pr3', date: D(6, 14), type: 'deadline', label: 'Marriott opening' },
-    ]
-    const dependencies = [{ from: 'b1', to: 'b3' }, { from: 'b6', to: 'b8' }, { from: 'b9', to: 'b11' }]
-    const timeLogs = [
-      { id: 't1', painterId: 'p1', projectId: 'pr1', date: D(4, 27), reg: 8, ot: 0, notes: '', status: 'Approved' },
-      { id: 't2', painterId: 'p1', projectId: 'pr1', date: D(4, 28), reg: 8, ot: 1, notes: 'Patching hallway', status: 'Approved' },
-      { id: 't3', painterId: 'p1', projectId: 'pr1', date: D(4, 29), reg: 8, ot: 0, notes: '', status: 'Approved' },
-      { id: 't4', painterId: 'p1', projectId: 'pr1', date: D(4, 30), reg: 8, ot: 0, notes: '', status: 'Submitted' },
-      { id: 't5', painterId: 'p2', projectId: 'pr1', date: D(4, 27), reg: 8, ot: 0, notes: '', status: 'Approved' },
-      { id: 't6', painterId: 'p2', projectId: 'pr1', date: D(4, 28), reg: 8, ot: 0, notes: '', status: 'Approved' },
-      { id: 't7', painterId: 'p2', projectId: 'pr1', date: D(4, 29), reg: 8, ot: 1, notes: '', status: 'Approved' },
-      { id: 't8', painterId: 'p2', projectId: 'pr1', date: D(4, 30), reg: 8, ot: 0, notes: '', status: 'Submitted' },
-      { id: 't9', painterId: 'p4', projectId: 'pr2', date: D(4, 28), reg: 8, ot: 0, notes: 'Plaster prep', status: 'Approved' },
-      { id: 't10', painterId: 'p4', projectId: 'pr2', date: D(4, 29), reg: 8, ot: 0, notes: '', status: 'Approved' },
-      { id: 't11', painterId: 'p4', projectId: 'pr2', date: D(4, 30), reg: 8, ot: 2, notes: 'After-hours', status: 'Submitted' },
-      { id: 't12', painterId: 'p5', projectId: 'pr2', date: D(4, 28), reg: 8, ot: 0, notes: '', status: 'Approved' },
-      { id: 't13', painterId: 'p8', projectId: 'pr5', date: D(4, 28), reg: 10, ot: 2, notes: 'Wing C antimicrobial', status: 'Approved' },
-      { id: 't14', painterId: 'p9', projectId: 'pr5', date: D(4, 28), reg: 10, ot: 2, notes: '', status: 'Approved' },
-      { id: 't15', painterId: 'p7', projectId: 'pr5', date: D(4, 28), reg: 10, ot: 0, notes: '', status: 'Submitted' },
-      { id: 't16', painterId: 'p6', projectId: 'pr1', date: D(5, 4), reg: 8, ot: 0, notes: '', status: 'Draft' },
-    ]
-    const changeOrders = [
-      { id: 'co1', projectId: 'pr1', title: 'Add stairwell repaint', desc: 'Client added 3 stairwells', requestedBy: 'Marin Aldridge', status: 'Approved', amount: 6800, costImpact: 2400, date: D(4, 22), approved: D(4, 24) },
-      { id: 'co2', projectId: 'pr1', title: 'Premium trim paint upgrade', desc: 'Switch to enamel finish', requestedBy: 'Marin Aldridge', status: 'Sent', amount: 2200, costImpact: 700, date: D(4, 28) },
-      { id: 'co3', projectId: 'pr2', title: 'Custom plaster color match', desc: 'Match existing 1920s plaster', requestedBy: 'Priya Shah', status: 'Approved', amount: 4400, costImpact: 1500, date: D(5, 1), approved: D(5, 3) },
-      { id: 'co4', projectId: 'pr2', title: 'Late-night work surcharge', desc: 'Building required after-hours window', requestedBy: 'Priya Shah', status: 'Approved', amount: 7100, costImpact: 3200, date: D(5, 6), approved: D(5, 12) },
-      { id: 'co5', projectId: 'pr5', title: 'Additional infection-control sealing', desc: 'Hospital required negative-air zones', requestedBy: 'Anita Vaughn', status: 'Approved', amount: 9800, costImpact: 4200, date: D(4, 18), approved: D(4, 20) },
-      { id: 'co6', projectId: 'pr5', title: 'Weekend schedule compression', desc: 'Compress timeline by 4 days', requestedBy: 'Anita Vaughn', status: 'Sent', amount: 5600, costImpact: 2900, date: D(4, 28) },
-      { id: 'co7', projectId: 'pr3', title: 'Add corridor accent wall', desc: 'Marketing requested signature wall', requestedBy: 'Devon Park', status: 'Draft', amount: 3200, costImpact: 1200, date: D(4, 30) },
-    ]
-    const expenses = [
-      { id: 'e1', projectId: 'pr1', title: 'Sherwin-Williams — premium enamel', category: 'Materials', vendor: 'Sherwin-Williams', amount: 1840.22, date: D(4, 21), status: 'Paid' },
-      { id: 'e2', projectId: 'pr1', title: 'Drop cloths & masking', category: 'Materials', vendor: 'HD Supply', amount: 312.45, date: D(4, 21), status: 'Paid' },
-      { id: 'e3', projectId: 'pr1', title: 'Scaffold rental', category: 'Equipment', vendor: 'Sunbelt Rentals', amount: 720.0, date: D(4, 24), status: 'Unpaid' },
-      { id: 'e4', projectId: 'pr2', title: 'Venetian plaster batch', category: 'Materials', vendor: 'Modello Designs', amount: 4280.0, date: D(4, 26), status: 'Paid' },
-      { id: 'e5', projectId: 'pr2', title: 'Spray rig calibration', category: 'Equipment', vendor: 'Graco Service', amount: 240.0, date: D(4, 28), status: 'Paid' },
-      { id: 'e6', projectId: 'pr5', title: 'Antimicrobial coating system', category: 'Materials', vendor: 'Sherwin-Williams', amount: 6210.5, date: D(4, 18), status: 'Paid' },
-      { id: 'e7', projectId: 'pr5', title: 'Negative-air containment', category: 'Subcontractor', vendor: 'AirBarrier Co.', amount: 1880.0, date: D(4, 18), status: 'Paid' },
-      { id: 'e8', projectId: 'pr5', title: 'Travel — Maywood team transport', category: 'Travel', vendor: 'Internal', amount: 412.0, date: D(4, 28), status: 'Unpaid' },
-      { id: 'e9', projectId: 'pr3', title: 'Corridor primer order', category: 'Materials', vendor: 'Benjamin Moore', amount: 920.0, date: D(5, 1), status: 'Unpaid' },
-    ]
-    const activity = [
-      { id: 'a1', t: 'Today 10:42', text: 'Marin approved CO #1 on Halsted Lofts', proj: 'pr1' },
-      { id: 'a2', t: 'Today 09:18', text: 'Mateo logged 8h on Halsted Lofts', proj: 'pr1' },
-      { id: 'a3', t: 'Yesterday', text: 'Anika submitted 2h overtime on Atlas Tower', proj: 'pr2' },
-      { id: 'a4', t: 'Yesterday', text: 'Sasha completed wing C ceilings (Riverside)', proj: 'pr5' },
-      { id: 'a5', t: 'Apr 28', text: 'Devon requested CO #1 on Marriott', proj: 'pr3' },
-    ]
-    return { today, clients, painters, projects, blocks, milestones, dependencies, timeLogs, changeOrders, expenses, activity }
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    // Demo data removed — Maka Painters' real roster lives in the Mac Painters
+    // view (src/lib/macPainters.js). This dashboard starts clean.
+    return { today, clients: [], painters: [], projects: [], blocks: [], milestones: [], dependencies: [], timeLogs: [], changeOrders: [], expenses: [], activity: [] }
   }
 
   allTimeLogs() { return this.db.timeLogs.concat(this.state.extras.timeLogs || []) }
@@ -322,9 +227,9 @@ export default class App extends React.Component {
     const connectedCount = Object.values(conns).filter(Boolean).length
     const labels = { home: 'Command Center', schedule: 'Schedule', projects: 'Projects', painters: 'Painters', 'mac-painters': 'Mac Painters', payroll: 'Payroll', reports: 'Reports', 'change-orders': 'Change Orders', expenses: 'Expenses', 'time-logs': 'Time Logs', addresses: 'Addresses', integrations: 'Integrations', assistant: 'Assistant' }
     const subs = {
-      home: 'May 2026 · ' + D.projects.length + ' projects · ' + D.painters.length + ' painters',
+      home: D.today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) + ' · ' + D.projects.length + ' projects · ' + D.painters.length + ' painters',
       schedule: D.projects.length + ' projects · ' + D.painters.length + ' painters',
-      payroll: 'Apr 27 – May 3, 2026',
+      payroll: this.cycleLabel(),
       'mac-painters': MAC_PAINTERS.meta.employeeCount + ' employees · Darwin + Mauricio · ' + MAC_PAINTERS.meta.shared + ' shared',
       integrations: connectedCount + ' of 7 connected',
     }
@@ -367,13 +272,16 @@ export default class App extends React.Component {
     const totalRevenue = D.projects.reduce((s, p) => s + this.projectFinancials(p.id).revenue, 0)
     const totalCost = D.projects.reduce((s, p) => s + this.projectFinancials(p.id).totalCost, 0)
     const profit = totalRevenue - totalCost
-    const avgMargin = profit / totalRevenue
+    const avgMargin = totalRevenue > 0 ? profit / totalRevenue : 0
+    const inProgress = D.projects.filter((p) => p.status === 'In Progress').length
+    const scheduled = D.projects.filter((p) => p.status === 'Scheduled').length
+    const atRisk = D.projects.filter((p) => p.status === 'At Risk')
     const kpis = [
-      { label: 'Active projects', value: String(D.projects.length), sub: '2 in progress · 3 scheduled', tone: 'blue' },
-      { label: 'Revenue YTD', value: this.fmtMoney(totalRevenue, { compact: true }), sub: 'incl. approved COs', tone: 'muted' },
-      { label: 'Cost YTD', value: this.fmtMoney(totalCost, { compact: true }), sub: 'labor + materials', tone: 'muted' },
+      { label: 'Active projects', value: String(D.projects.length), sub: inProgress + ' in progress · ' + scheduled + ' scheduled', tone: 'blue' },
+      { label: 'Revenue', value: this.fmtMoney(totalRevenue, { compact: true }), sub: 'incl. approved COs', tone: 'muted' },
+      { label: 'Cost', value: this.fmtMoney(totalCost, { compact: true }), sub: 'labor + materials', tone: 'muted' },
       { label: 'Profit', value: this.fmtMoney(profit, { compact: true }), sub: (avgMargin * 100).toFixed(1) + '% margin', tone: 'green' },
-      { label: 'At-risk value', value: this.fmtMoney(D.projects.filter((p) => p.status === 'At Risk').reduce((s, p) => s + this.projectFinancials(p.id).revenue, 0), { compact: true }), sub: '1 project flagged', tone: 'amber' },
+      { label: 'At-risk value', value: this.fmtMoney(atRisk.reduce((s, p) => s + this.projectFinancials(p.id).revenue, 0), { compact: true }), sub: atRisk.length + (atRisk.length === 1 ? ' project flagged' : ' projects flagged'), tone: 'amber' },
     ]
     const mkProj = (p) => {
       const fin = this.projectFinancials(p.id)
@@ -400,9 +308,16 @@ export default class App extends React.Component {
       homeMilestones: D.milestones.slice(0, 5).map((m) => {
         const proj = D.projects.find((p) => p.id === m.projectId)
         const col = { milestone: 'var(--amber)', deadline: 'var(--red)', change: 'var(--purple)', weather: 'var(--cyan)' }[m.type] || 'var(--amber)'
-        return { label: m.label, sub: proj.name.split('—')[0].trim() + ' · ' + m.type, date: this.fmtDate(m.date), color: col }
+        return { label: m.label, sub: (proj ? proj.name.split('—')[0].trim() : 'Project') + ' · ' + m.type, date: this.fmtDate(m.date), color: col }
       }),
       homeActivity: D.activity.map((a) => ({ time: a.t, text: a.text })),
+      hasProjects: D.projects.length > 0,
+      hasAtRisk: atRisk.length > 0,
+      hasMilestones: D.milestones.length > 0,
+      hasActivity: D.activity.length > 0,
+      goMacPainters: () => this.setView('mac-painters'),
+      claudeLed: this.state.connections.claude ? 'ok' : 'idle',
+      claudeStatus: this.state.connections.claude ? 'CONNECTED' : 'BUILT-IN',
       claudePrompts: [
         { text: 'Which project has the weakest margin and why?', onClick: () => this.askClaude('Which project has the weakest margin and why?') },
         { text: 'Summarize this week’s payroll.', onClick: () => this.askClaude('Summarize this week’s payroll.') },
@@ -435,16 +350,24 @@ export default class App extends React.Component {
   buildContext() {
     const D = this.db
     const L = []
-    L.push('You are the Maka OS copilot for a commercial painting contractor (Maka OS, dark ops dashboard). Answer ONLY from the data below, concise and operator-to-operator, with specific $ and %. Today is May 1, 2026. No markdown headers.')
-    L.push('PROJECTS:')
-    D.projects.forEach((p) => { const f = this.projectFinancials(p.id); L.push('- ' + p.name + ' [' + p.status + '] revenue ' + this.fmtMoney(f.revenue) + ', cost ' + this.fmtMoney(f.totalCost, { dp: 0 }) + ', profit ' + this.fmtMoney(f.profit, { dp: 0 }) + ', margin ' + (f.margin * 100).toFixed(1) + '%, ' + Math.round(p.progress * 100) + '% done, health ' + p.health + '/100, ' + p.address) })
+    const today = D.today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    L.push('You are the Maka OS copilot for Maka Painters, a painting contractor (Maka OS, dark ops dashboard). Answer ONLY from the data below, concise and operator-to-operator, with specific $ and %. Today is ' + today + '. No markdown headers.')
+    try {
+      const m = MAC_PAINTERS.meta
+      L.push('MAC PAINTERS ROSTER: ' + m.employeeCount + ' employees imported from the Darwin + Mauricio payroll exports (' + m.shared + ' shared across both). Hours, wages and weekly schedule live in the Mac Painters view.')
+    } catch (e) {}
+    if (!D.projects.length && !D.painters.length) {
+      L.push('The project dashboard is empty — no demo/sample projects, crews, time logs or expenses. If asked about jobs or margins, say none have been added yet and point to the Mac Painters view for real roster/hours/payroll.')
+      return L.join('\n')
+    }
+    L.push('PROJECTS (' + D.projects.length + '):')
+    D.projects.forEach((p) => { const f = this.projectFinancials(p.id); L.push('- ' + p.name + ' [' + p.status + '] revenue ' + this.fmtMoney(f.revenue) + ', cost ' + this.fmtMoney(f.totalCost, { dp: 0 }) + ', profit ' + this.fmtMoney(f.profit, { dp: 0 }) + ', margin ' + (f.margin * 100).toFixed(1) + '%, ' + Math.round(p.progress * 100) + '% done, health ' + p.health + '/100' + (p.address ? ', ' + p.address : '')) })
     const payReg = this.allTimeLogs().reduce((s, l) => s + l.reg, 0)
     const payOt = this.allTimeLogs().reduce((s, l) => s + l.ot, 0)
-    L.push('PAINTERS (' + D.painters.length + '): ' + D.painters.map((p) => p.name + ' — ' + p.role + ', ' + p.crew + ', ' + (p.pay.type === 'Hourly' ? '$' + p.pay.rate + '/hr' : p.pay.type) + ', ' + p.avail).join('; '))
+    L.push('PAINTERS (' + D.painters.length + '): ' + (D.painters.map((p) => p.name + ' — ' + p.role + ', ' + p.crew + ', ' + (p.pay.type === 'Hourly' ? '$' + p.pay.rate + '/hr' : p.pay.type) + ', ' + p.avail).join('; ') || 'none'))
     L.push('PAYROLL this cycle: ' + payReg + 'h regular + ' + payOt + 'h overtime across the crews.')
     L.push('CHANGE ORDERS: ' + this.allCOs().filter((c) => c.status === 'Approved').length + ' approved, ' + this.allCOs().filter((c) => c.status === 'Sent' || c.status === 'Draft').length + ' pending.')
-    L.push('MILESTONES: ' + D.milestones.map((m) => m.label + ' (' + this.fmtDate(m.date) + ')').join('; '))
-    L.push('KNOWN CONFLICT: Mateo Reyes is double-booked May 6–9 — on Halsted Lofts and a 4h/day block on Atlas Tower.')
+    if (D.milestones.length) L.push('MILESTONES: ' + D.milestones.map((m) => m.label + ' (' + this.fmtDate(m.date) + ')').join('; '))
     return L.join('\n')
   }
 
@@ -482,35 +405,59 @@ export default class App extends React.Component {
   }
 
   mockReply(q) {
-    const ql = q.toLowerCase()
+    const ql = q.toLowerCase(), D = this.db
+    const macLine = (() => { try { return ' Your real crew (' + MAC_PAINTERS.meta.employeeCount + ' employees, hours and payroll) is in the Mac Painters view.' } catch (e) { return '' } })()
+    if (!D.projects.length && !D.painters.length) {
+      return 'The project dashboard is empty — the sample jobs and painters were cleared.' + macLine + ' Add projects, clients and time logs here and I’ll break down margins, payroll and schedule conflicts.'
+    }
     if (ql.includes('margin') || ql.includes('weak') || ql.includes('profit')) {
       let worst = null
-      this.db.projects.forEach((p) => { const f = this.projectFinancials(p.id); if (!worst || f.margin < worst.m) worst = { p, f, m: f.margin } })
-      return worst.p.name + ' is your thinnest at ' + (worst.m * 100).toFixed(1) + '% margin — ' + this.fmtMoney(worst.f.profit, { dp: 0 }) + ' profit on ' + this.fmtMoney(worst.f.revenue) + ' revenue. The drag is labor plus change-order cost on after-hours infection-control work. Push the pending CO to approval and watch overtime to protect the margin.'
+      D.projects.forEach((p) => { const f = this.projectFinancials(p.id); if (!worst || f.margin < worst.m) worst = { p, f, m: f.margin } })
+      if (!worst) return 'No projects yet — add a job with its contract value and I’ll track its margin for you.'
+      return worst.p.name + ' is your thinnest at ' + (worst.m * 100).toFixed(1) + '% margin — ' + this.fmtMoney(worst.f.profit, { dp: 0 }) + ' profit on ' + this.fmtMoney(worst.f.revenue) + ' revenue. Watch labor and change-order cost there to protect the margin.'
     }
     if (ql.includes('payroll') || ql.includes('pay ') || ql.includes('wages')) {
-      const reg = this.allTimeLogs().reduce((s, l) => s + l.reg, 0)
-      const ot = this.allTimeLogs().reduce((s, l) => s + l.ot, 0)
-      return 'This cycle (Apr 27–May 3) logs ' + reg + 'h regular and ' + ot + 'h overtime across the crews. Net pay lands near $4.7k after ~18% withholding, with lead/foreperson bonuses. Atlas Tower and Riverside are driving the overtime — both ran after-hours windows.'
+      const reg = this.allTimeLogs().reduce((s, l) => s + l.reg, 0), ot = this.allTimeLogs().reduce((s, l) => s + l.ot, 0)
+      if (!reg && !ot) return 'No hours have been logged on the project dashboard yet.' + macLine
+      let gross = 0
+      this.allTimeLogs().forEach((l) => { const pa = D.painters.find((p) => p.id === l.painterId); if (!pa) return; const r = pa.pay.type === 'Hourly' ? pa.pay.rate : pa.pay.type === 'Per Day' ? pa.pay.rate / 8 : 40; gross += l.reg * r + l.ot * r * 1.5 })
+      return 'This cycle logs ' + reg + 'h regular and ' + ot + 'h overtime, about ' + this.fmtMoney(gross, { dp: 0 }) + ' gross and roughly ' + this.fmtMoney(gross * 0.82, { dp: 0 }) + ' net after ~18% withholding.'
     }
     if (ql.includes('conflict') || ql.includes('double') || ql.includes('overbook') || ql.includes('schedul')) {
-      return 'Yes — Mateo Reyes is double-booked May 6–9: he’s on Halsted Lofts and also a 4h/day block on Atlas Tower Lobby. Re-assign the Atlas hours to Dario Conti (available, Crew B) or slide Mateo’s Halsted block by two days to clear it.'
+      const c = this.findConflicts()
+      if (!c.length) return 'No scheduling conflicts right now — no painter is double-booked across overlapping blocks.'
+      return c.map((x) => x.painter + ' is double-booked ' + this.fmtDate(x.start) + '–' + this.fmtDate(x.end) + ' on ' + x.projects.join(' and ')).join('. ') + '. Re-assign or shift one block to clear it.'
     }
     if (ql.includes('risk')) {
-      const r = this.db.projects.filter((p) => p.status === 'At Risk')
-      const f = r[0] ? this.projectFinancials(r[0].id) : null
-      return r.length ? r[0].name + ' is flagged at risk — health ' + r[0].health + '/100 and margin ' + (f.margin * 100).toFixed(0) + '%. It’s the hospital wing: after-hours work, infection-control protocols and a hard re-open deadline of May 12. Keep the negative-air CO approved and hold the line on overtime.' : 'No projects are currently flagged at risk — all are at health 78+ this week.'
+      const r = D.projects.filter((p) => p.status === 'At Risk')
+      if (!r.length) return 'No projects are flagged at risk right now.'
+      const f = this.projectFinancials(r[0].id)
+      return r[0].name + ' is flagged at risk — health ' + r[0].health + '/100 and margin ' + (f.margin * 100).toFixed(0) + '%. Keep an eye on its costs and deadline.'
     }
     if (ql.includes('expense') || ql.includes('cost') || ql.includes('spend')) {
       const t = this.allExpenses().reduce((s, e) => s + e.amount, 0)
+      if (!t) return 'No expenses recorded yet. Add them under Expenses or a project and I’ll total them by category and flag what’s unpaid.'
       const u = this.allExpenses().filter((e) => e.status === 'Unpaid').reduce((s, e) => s + e.amount, 0)
-      return 'Recorded expenses total ' + this.fmtMoney(t, { dp: 0 }) + ', of which ' + this.fmtMoney(u, { dp: 0 }) + ' is still unpaid. Materials dominate — Sherwin-Williams enamel and the antimicrobial coating system are the two biggest line items. I’d clear the scaffold rental and Maywood transport to keep vendor terms clean.'
+      return 'Recorded expenses total ' + this.fmtMoney(t, { dp: 0 }) + ', of which ' + this.fmtMoney(u, { dp: 0 }) + ' is still unpaid.'
     }
-    if (ql.includes('halsted') || ql.includes('atlas') || ql.includes('riverside') || ql.includes('marriott') || ql.includes('linden') || ql.includes('greene')) {
-      const p = this.db.projects.find((x) => ql.includes(x.name.split(' ')[0].toLowerCase()))
-      if (p) { const f = this.projectFinancials(p.id); return p.name + ' is ' + p.status.toLowerCase() + ' at ' + Math.round(p.progress * 100) + '% complete. Revenue ' + this.fmtMoney(f.revenue) + ', cost ' + this.fmtMoney(f.totalCost, { dp: 0 }) + ', current profit ' + this.fmtMoney(f.profit, { dp: 0 }) + ' (' + (f.margin * 100).toFixed(1) + '% margin). Health is ' + p.health + '/100.' }
-    }
-    return 'I can read every project, painter, time log, change order and expense in your workspace. Try: “which project has the weakest margin?”, “summarize this week’s payroll”, or “any scheduling conflicts?”'
+    const hit = D.projects.find((x) => x.name && ql.includes(x.name.split(' ')[0].toLowerCase()))
+    if (hit) { const f = this.projectFinancials(hit.id); return hit.name + ' is ' + hit.status.toLowerCase() + ' at ' + Math.round(hit.progress * 100) + '% complete. Revenue ' + this.fmtMoney(f.revenue) + ', cost ' + this.fmtMoney(f.totalCost, { dp: 0 }) + ', profit ' + this.fmtMoney(f.profit, { dp: 0 }) + ' (' + (f.margin * 100).toFixed(1) + '% margin), health ' + hit.health + '/100.' }
+    return 'I can read every project, painter, time log, change order and expense in your workspace.' + macLine + ' Try: “which project has the weakest margin?”, “summarize payroll”, or “any scheduling conflicts?”'
+  }
+
+  findConflicts() {
+    const D = this.db, out = [], byP = {}
+    D.blocks.forEach((b) => { (byP[b.painterId] || (byP[b.painterId] = [])).push(b) })
+    Object.keys(byP).forEach((pid) => {
+      const list = byP[pid], pa = D.painters.find((p) => p.id === pid)
+      for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+        if (list[i].end >= list[j].start && list[j].end >= list[i].start) {
+          const pr1 = D.projects.find((p) => p.id === list[i].projectId), pr2 = D.projects.find((p) => p.id === list[j].projectId)
+          out.push({ painter: pa ? pa.name : 'A painter', start: new Date(Math.max(+list[i].start, +list[j].start)), end: new Date(Math.min(+list[i].end, +list[j].end)), projects: [pr1 ? pr1.name.split('—')[0].trim() : '?', pr2 ? pr2.name.split('—')[0].trim() : '?'] })
+        }
+      }
+    })
+    return out
   }
 
   assistantVals() {
@@ -572,7 +519,7 @@ export default class App extends React.Component {
       }
     })
     const tabs = ['all', 'In Progress', 'Scheduled', 'At Risk', 'Completed'].map((s) => ({ label: s === 'all' ? 'All' : s, style: this.segBtn(st === s), onClick: () => { this._projStatus = s; this.forceUpdate() } }))
-    return { projectCards: cards, projStatusTabs: tabs, onProjSearch: (e) => { this._projQ = e.target.value; this.forceUpdate() }, newProjectToast: () => this.toast('New project — form coming soon') }
+    return { projectCards: cards, hasProjects: this.db.projects.length > 0, goMacPainters: () => this.setView('mac-painters'), projStatusTabs: tabs, onProjSearch: (e) => { this._projQ = e.target.value; this.forceUpdate() }, newProjectToast: () => this.toast('New project — form coming soon') }
   }
 
   paintersVals() {
@@ -592,7 +539,7 @@ export default class App extends React.Component {
       }
     })
     const tabs = ['all', 'Crew A', 'Crew B', 'Crew C'].map((s) => ({ label: s === 'all' ? 'All crews' : s, style: this.segBtn(crew === s), onClick: () => { this._paintCrew = s; this.forceUpdate() } }))
-    return { painterRows: rows, paintCrewTabs: tabs, onPaintSearch: (e) => { this._paintQ = e.target.value; this.forceUpdate() }, newPainterToast: () => this.toast('New painter — form coming soon') }
+    return { painterRows: rows, hasPainters: this.db.painters.length > 0, goMacPainters: () => this.setView('mac-painters'), paintCrewTabs: tabs, onPaintSearch: (e) => { this._paintQ = e.target.value; this.forceUpdate() }, newPainterToast: () => this.toast('New painter — form coming soon') }
   }
 
   reportsVals() {
@@ -664,9 +611,11 @@ export default class App extends React.Component {
     const expUnpaid = this.allExpenses().filter((e) => e.status === 'Unpaid').reduce((s, e) => s + e.amount, 0)
     return {
       coRows, expRows, tlRows, addrRows,
+      hasCORows: coRows.length > 0, hasExpRows: expRows.length > 0, hasTLRows: tlRows.length > 0, hasAddrRows: addrRows.length > 0,
       coApprovedS: this.fmtMoney(coApproved), coPendingS: this.fmtMoney(coPending),
       expTotalS: this.fmtMoney(expTotal, { dp: 0 }), expUnpaidS: this.fmtMoney(expUnpaid, { dp: 0 }),
-      addCOTop: () => this.openForm('co', this.db.projects[0].id), addExpenseTop: () => this.openForm('expense', this.db.projects[0].id), logHoursTop: () => this.openForm('bulk', 'pr1'),
+      goMacPainters: () => this.setView('mac-painters'),
+      addCOTop: () => this.openForm('co', this.db.projects[0] && this.db.projects[0].id), addExpenseTop: () => this.openForm('expense', this.db.projects[0] && this.db.projects[0].id), logHoursTop: () => this.openForm('bulk', this.db.projects[0] && this.db.projects[0].id),
     }
   }
 
@@ -705,13 +654,7 @@ export default class App extends React.Component {
     const connectedCount = defs.filter((d) => conns[d.id]).length
     return {
       integrationCards: cards, intConnected: String(connectedCount), intTotal: String(defs.length),
-      intActivity: [
-        { text: 'Exported weekly payroll to Google Sheets', time: '2m ago' },
-        { text: 'Saved 3 receipts from Riverside to Drive', time: '1h ago' },
-        { text: 'Claude summarized Atlas Tower margin risk', time: '3h ago' },
-        { text: 'Synced May schedule to crew calendars', time: 'Today 7:02' },
-        { text: 'Emailed CO #4 to Priya Shah', time: 'Yesterday' },
-      ],
+      intActivity: [], intHasActivity: false,
     }
   }
 
@@ -825,7 +768,7 @@ export default class App extends React.Component {
       forecast: this.fmtMoney(fin.forecastProfit), forecastStyle: { fontSize: '16px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: fin.forecastProfit >= 0 ? 'var(--green)' : 'var(--red)' },
       plPillText: fin.margin < 0.15 ? 'Margin below target' : 'On track', plPillColor: fin.margin < 0.15 ? 'amber' : 'green',
       health: [healthRow('Schedule', p.progress * 100, 70), healthRow('Budget', (1 - fin.totalCost / fin.revenue) * 100 + 50, 75), healthRow('Crew load', blocks.length * 12, 70), healthRow('Quality', p.health, 80)],
-      clientName: client.name, clientSub: client.contact + ' · ' + client.email,
+      clientName: client ? client.name : 'No client', clientSub: client ? (client.contact + ' · ' + client.email) : 'No client linked',
       painters: painterIds.map((id) => { const pa = this.db.painters.find((x) => x.id === id); const myL = logs.filter((l) => l.painterId === id); const h = myL.reduce((s, l) => s + l.reg + l.ot, 0); const myB = blocks.filter((b) => b.painterId === id); const minD = myB.length ? new Date(Math.min(...myB.map((b) => +b.start))) : null; const maxD = myB.length ? new Date(Math.max(...myB.map((b) => +b.end))) : null; const rate = pa.pay.type === 'Hourly' ? pa.pay.rate : pa.pay.type === 'Per Day' ? pa.pay.rate / 8 : 40; return { id, name: pa.name, initials: this.initials(pa.name), avatarStyle: this.miniAvatar(pa, 24), crew: pa.crew, dates: minD && maxD ? this.fmtDate(minD) + ' – ' + this.fmtDate(maxD) : '—', hours: h + 'h', cost: this.fmtMoney(h * rate), onOpen: () => this.openPainter(id) } }),
       cos: cos.map((co) => ({ title: co.title, desc: co.desc, status: co.status, statusColor: coSC[co.status] || 'default', meta: 'By ' + co.requestedBy + ' · ' + this.fmtDate(co.date), amount: '+' + this.fmtMoney(co.amount), profit: 'profit +' + this.fmtMoney(co.amount - co.costImpact) })),
       exps: exp.map((e) => ({ title: e.title, category: e.category, vendor: e.vendor, date: this.fmtDate(e.date), amount: this.fmtMoney(e.amount, { dp: 2 }), status: e.status, statusColor: e.status === 'Paid' ? 'green' : 'amber' })),
@@ -884,7 +827,7 @@ export default class App extends React.Component {
       out.formIsExpense = f.type === 'expense'
       out.formIsBulk = f.type === 'bulk'
       out.formTitle = { co: 'New change order', expense: 'Add expense', bulk: 'Bulk log hours' }[f.type]
-      out.formSub = proj.name
+      out.formSub = proj ? proj.name : 'No project — add one first'
       out.formProjects = this.db.projects.map((p) => ({ id: p.id, name: p.name, sel: p.id === proj.id }))
       out.formPainters = this.db.painters.map((p) => ({ id: p.id, name: p.name, initials: this.initials(p.name), avatarStyle: this.miniAvatar(p, 22), crew: p.crew, defaultSel: ['p1', 'p2', 'p6'].includes(p.id) }))
       out.closeFormX = () => this.setState({ form: null })

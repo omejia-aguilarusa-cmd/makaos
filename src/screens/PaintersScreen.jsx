@@ -2,6 +2,7 @@ import React from 'react'
 import { css } from '../lib/css.js'
 import { Box } from '../ui/Box.jsx'
 import { Badge } from '../ds/index.jsx'
+import { EmptyState } from '../ui/Empty.jsx'
 
 export default function PaintersScreen({ v }) {
   return (
@@ -29,7 +30,7 @@ export default function PaintersScreen({ v }) {
               <th style={css('text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:700;padding:9px 11px;border-bottom:1px solid var(--line);background:var(--panel-2)')}>Active projects</th>
             </tr></thead>
             <tbody>
-              {v.painterRows.map((p) => (
+              {v.hasPainters ? v.painterRows.map((p) => (
                 <Box as="tr" key={p.id} onClick={p.onOpen} style={css('cursor:pointer')} hover="background:var(--panel-2)">
                   <td style={css('padding:9px 11px;border-bottom:1px solid var(--line-soft)')}><div style={css('display:flex;align-items:center;gap:9px')}><div style={p.avatarStyle}>{p.initials}</div><div><div style={css('font-weight:600')}>{p.name}</div><div style={css('font-size:10.5px;color:var(--faint)')}>{p.role}</div></div></div></td>
                   <td style={css('padding:9px 11px;border-bottom:1px solid var(--line-soft)')}>{p.crew}</td>
@@ -39,7 +40,7 @@ export default function PaintersScreen({ v }) {
                   <td style={css('padding:9px 11px;border-bottom:1px solid var(--line-soft)')}><Badge color={p.availColor}>{p.avail}</Badge></td>
                   <td style={css('padding:9px 11px;border-bottom:1px solid var(--line-soft)')}><div style={css('display:flex;gap:4px;flex-wrap:wrap')}>{p.chips.map((ch, i) => (<span key={i} style={ch.style}>{ch.label}</span>))}</div></td>
                 </Box>
-              ))}
+              )) : <tr><td colSpan={7}><EmptyState title="No painters here" hint="This sample roster was cleared. Your real 55-person crew lives in the Mac Painters view." actionLabel="View Mac Painters" onAction={v.goMacPainters} /></td></tr>}
             </tbody>
           </table>
         </div>

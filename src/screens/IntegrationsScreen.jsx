@@ -50,13 +50,13 @@ export default function IntegrationsScreen({ v }) {
           <span style={css('margin-left:auto;width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:makapulse 2s ease-in-out infinite')}></span>
         </div>
         <div style={css('padding:4px 14px 10px')}>
-          {v.intActivity.map((a, i) => (
+          {v.intHasActivity ? v.intActivity.map((a, i) => (
             <div key={i} style={css('display:flex;align-items:center;gap:11px;padding:8px 0;border-bottom:1px dashed var(--line-soft)')}>
               <span style={css('width:6px;height:6px;border-radius:50%;background:var(--blue);flex-shrink:0')}></span>
               <span style={css('font-size:12px;color:var(--text);flex:1')}>{a.text}</span>
               <span style={css('font-family:var(--font-mono);font-size:10.5px;color:var(--faint-2)')}>{a.time}</span>
             </div>
-          ))}
+          )) : <div style={css('padding:14px;color:var(--faint);font-size:12px;text-align:center')}>No sync activity yet</div>}
         </div>
       </div>
     </div>

@@ -2,11 +2,12 @@ import React from 'react'
 import { css } from '../lib/css.js'
 import { Box } from '../ui/Box.jsx'
 import { Badge } from '../ds/index.jsx'
+import { EmptyState } from '../ui/Empty.jsx'
 
 export default function AddressesScreen({ v }) {
   return (
     <div style={css('padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px;overflow:auto;height:100%;align-content:start')}>
-      {v.addrRows.map((a) => (
+      {v.hasAddrRows ? v.addrRows.map((a) => (
         <Box key={a.id} onClick={a.onOpen} style={css('background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:13px;cursor:pointer;display:flex;gap:11px;align-items:flex-start')} hover="border-color:var(--line-strong)">
           <span style={{ ...css('width:30px;height:30px;border-radius:8px;background:var(--inset);border:1px solid var(--line-soft);display:grid;place-items:center;flex-shrink:0'), color: a.color }}>{v.icPin}</span>
           <div style={css('flex:1;min-width:0')}>
@@ -19,7 +20,7 @@ export default function AddressesScreen({ v }) {
             <Badge color={a.statusColor}>{a.status}</Badge>
           </div>
         </Box>
-      ))}
+      )) : <EmptyState title="No job sites" hint="Job sites come from projects. Sample data was cleared; your real team is in the Mac Painters view." actionLabel="View Mac Painters" onAction={v.goMacPainters} />}
     </div>
   )
 }
