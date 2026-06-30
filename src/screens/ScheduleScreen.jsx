@@ -1,12 +1,24 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { css } from '../lib/css.js'
 import { Box } from '../ui/Box.jsx'
+import MacScheduleView from './MacScheduleView.jsx'
 
-// Schedule (the Gantt). Ported 1:1 from the source template's isSchedule block.
+// Schedule. Demo Gantt (1:1 port of the source) + a real Mac Painters work
+// timeline built from the imported payroll entries.
 export default function ScheduleScreen({ v }) {
+  const [mode, setMode] = useState('mac')
+  const seg = (active) => css('background:transparent;border:0;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;white-space:nowrap' + (active ? ';background:var(--panel-3);color:var(--text)' : ';color:var(--muted)'))
+  const ModeToggle = (
+    <div style={css('display:inline-flex;background:var(--inset);border:1px solid var(--line-soft);border-radius:8px;padding:2px;gap:2px')}>
+      <button onClick={() => setMode('mac')} style={seg(mode === 'mac')}>Mac Painters · real</button>
+      <button onClick={() => setMode('demo')} style={seg(mode === 'demo')}>Demo Gantt</button>
+    </div>
+  )
+  if (mode === 'mac') return <MacScheduleView ModeToggle={ModeToggle} />
   return (
     <div style={css('height:100%;display:flex;flex-direction:column;min-height:0')}>
       <div style={css('display:flex;gap:10px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-shrink:0;flex-wrap:wrap')}>
+        {ModeToggle}
         <div style={css('display:inline-flex;background:var(--inset);border:1px solid var(--line-soft);border-radius:8px;padding:2px;gap:2px')}>{v.schZoomTabs.map((t, i) => (<button key={i} onClick={t.onClick} style={t.style}>{t.label}</button>))}</div>
         <div style={css('display:inline-flex;background:var(--inset);border:1px solid var(--line-soft);border-radius:8px;padding:2px;gap:2px')}>{v.schGroupTabs.map((g, i) => (<button key={i} onClick={g.onClick} style={g.style}>{g.label}</button>))}</div>
         <span style={css('display:inline-flex;align-items:center;gap:6px;background:var(--inset);border:1px solid var(--line-soft);border-radius:7px;padding:5px 10px;font-size:11.5px;color:var(--muted);font-family:var(--font-mono)')}>{v.schDateLabel}</span>

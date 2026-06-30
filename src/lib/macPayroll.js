@@ -26,8 +26,14 @@ export function estWages(emp, agg) {
   return agg.total
 }
 
+// Wage crew (paid by labor) vs contract/subcontractor billing (whole-job
+// values logged under a person). Keeps job billing from inflating wage totals.
+export const isContract = (emp) => emp.payType === 'Contract'
+export const CATEGORIES = ['all', 'wage', 'contract']
+export const CATEGORY_LABEL = { all: 'All', wage: 'Wages', contract: 'Contract billing' }
+
 // Aggregate per employee for (team, from, to). Returns { rows, totals }.
-export function payroll(team, from, to, { q = '', activeOnly = false } = {}) {
+export function payroll(team, from, to, { q = '', activeOnly = false, category = 'all' } = {}) {
   const byEmp = {}
   for (const e of filterEntries(team, from, to)) {
     const a = byEmp[e.empId] || (byEmp[e.empId] = { hours: 0, subtotal: 0, addition: 0, deduction: 0, total: 0, n: 0, teams: new Set(), days: new Set(), last: '' })
@@ -40,12 +46,16 @@ export function payroll(team, from, to, { q = '', activeOnly = false } = {}) {
     const agg = { ...a, days: a.days.size, teams: [...a.teams].sort() }
     const est = estWages(emp, agg)
     const net = agg.subtotal + agg.addition - agg.deduction
-    return { ...emp, teamsIn: agg.teams, hours: agg.hours, days: agg.days, subtotal: agg.subtotal, addition: agg.addition, deduction: agg.deduction, total: agg.total, est, net, n: agg.n, last: agg.last }
+    const contract = isContract(emp)
+    return { ...emp, teamsIn: agg.teams, hours: agg.hours, days: agg.days, subtotal: agg.subtotal, addition: agg.addition, deduction: agg.deduction, total: agg.total, est, net, n: agg.n, last: agg.last, category: contract ? 'contract' : 'wage', value: contract ? agg.total : est }
   })
   if (ql) rows = rows.filter((r) => r.name.toLowerCase().includes(ql) || (r.variants || []).some((v) => v.toLowerCase().includes(ql)))
   if (activeOnly) rows = rows.filter((r) => r.status !== 'Inactive')
+  if (category !== 'all') rows = rows.filter((r) => r.category === category)
   const totals = rows.reduce((t, r) => { for (const k of ['hours', 'subtotal', 'addition', 'deduction', 'total', 'est', 'net', 'n']) t[k] += r[k]; return t }, { hours: 0, subtotal: 0, addition: 0, deduction: 0, total: 0, est: 0, net: 0, n: 0 })
   totals.shared = rows.filter((r) => r.teamsIn.length > 1).length
+  totals.wages = rows.filter((r) => r.category === 'wage').reduce((s, r) => s + r.est, 0)
+  totals.billing = rows.filter((r) => r.category === 'contract').reduce((s, r) => s + r.total, 0)
   return { rows, totals }
 }
 

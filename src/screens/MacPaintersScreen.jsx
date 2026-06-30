@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react'
 import { css } from '../lib/css.js'
 import { Box } from '../ui/Box.jsx'
 import { StatCard, Badge } from '../ds/index.jsx'
-import { payroll, employeeById, employeeEntries, money, fmtH, fmtDate, META, TEAM_LABEL, TEAM_COLOR } from '../lib/macPayroll.js'
+import { payroll, employeeById, employeeEntries, money, fmtH, fmtDate, META, TEAM_LABEL, TEAM_COLOR, CATEGORIES, CATEGORY_LABEL } from '../lib/macPayroll.js'
+import { downloadCSV } from '../lib/csv.js'
 
 // Mac Painters — the real merged payroll: Darwin + Mauricio (partners, same
 // company). Similar names across both books are counted as one person and
@@ -21,14 +22,21 @@ export default function MacPaintersScreen() {
   const [to, setTo] = useState(META.dateMax)
   const [q, setQ] = useState('')
   const [sort, setSort] = useState('hours') // hours | est | net | name | entries
+  const [cat, setCat] = useState('all')
   const [selId, setSelId] = useState(null)
 
   const { rows, totals } = useMemo(() => payroll(team, from, to, { q }), [team, from, to, q])
   const sorted = useMemo(() => {
-    const r = [...rows]
+    const r = (cat === 'all' ? rows : rows.filter((x) => x.category === cat)).slice()
     r.sort((a, b) => sort === 'name' ? a.name.localeCompare(b.name) : sort === 'est' ? b.est - a.est : sort === 'net' ? b.net - a.net : sort === 'entries' ? b.n - a.n : b.hours - a.hours)
     return r
-  }, [rows, sort])
+  }, [rows, sort, cat])
+
+  const exportCSV = () => {
+    const headers = ['Employee', 'Role', 'Pay type', 'Rate', 'Teams', 'Category', 'Hours', 'Days', 'Est. wages', 'Net', 'Entries', 'Last active']
+    const data = sorted.map((r) => [r.name, r.role, r.payType, r.rate ?? '', r.teamsIn.join('+'), r.category, r.hours, r.days, Math.round(r.est), Math.round(r.net), r.n, r.last])
+    downloadCSV(`mac-painters_${team}_${cat}_${from}_${to}.csv`, headers, data)
+  }
 
   const sel = selId ? employeeById(selId) : null
   const selEntries = useMemo(() => (selId ? employeeEntries(selId, team, from, to) : []), [selId, team, from, to])
@@ -56,17 +64,20 @@ export default function MacPaintersScreen() {
           <input type="date" value={to} min={from} max={META.dateMax} onChange={(e) => setTo(e.target.value || META.dateMax)} style={css(inputStyle)} />
         </span>
         <button onClick={() => { setFrom(META.dateMin); setTo(META.dateMax) }} style={css('background:var(--panel-2);border:1px solid var(--line);border-radius:7px;padding:6px 11px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer')}>All dates</button>
-        <input placeholder="Search employee…" value={q} onChange={(e) => setQ(e.target.value)} style={css('background:var(--input-bg);border:1px solid var(--line);border-radius:7px;padding:6px 10px;font-size:12.5px;color:var(--text);width:190px;outline:none')} />
+        <div style={css('display:inline-flex;background:var(--inset);border:1px solid var(--line-soft);border-radius:8px;padding:2px;gap:2px')}>
+          {CATEGORIES.map((c) => <button key={c} onClick={() => setCat(c)} style={css(segStyle(cat === c))}>{CATEGORY_LABEL[c]}</button>)}
+        </div>
+        <input placeholder="Search employee…" value={q} onChange={(e) => setQ(e.target.value)} style={css('background:var(--input-bg);border:1px solid var(--line);border-radius:7px;padding:6px 10px;font-size:12.5px;color:var(--text);width:170px;outline:none')} />
         <div style={css('flex:1')} />
-        <span style={css('font-size:11px;color:var(--faint);font-family:var(--font-mono)')}>{fmtDate(from)} – {fmtDate(to)}</span>
+        <button onClick={exportCSV} style={css('display:inline-flex;align-items:center;gap:6px;background:var(--blue);color:#fff;border:1px solid transparent;border-radius:7px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer')}>Export CSV</button>
       </div>
 
       <div style={css('flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:14px')}>
         <div style={css('display:grid;grid-template-columns:repeat(5,1fr);gap:11px')}>
-          <StatCard label="Employees" value={String(rows.length)} sub={totals.shared + ' shared across teams'} tone="blue" />
+          <StatCard label="Employees" value={String(sorted.length)} sub={totals.shared + ' shared across teams'} tone="blue" />
           <StatCard label="Hours" value={fmtH(totals.hours)} sub="in selected window" tone="muted" />
-          <StatCard label="Est. wages" value={money(totals.est)} sub="hours × rate (paid types)" tone="cyan" />
-          <StatCard label="Net recorded" value={money(totals.net)} sub="as logged in the sheets" tone="green" />
+          <StatCard label="Wages" value={money(totals.wages)} sub="hourly · per-day · fixed" tone="cyan" />
+          <StatCard label="Contract billing" value={money(totals.billing)} sub="subcontractor job totals" tone="amber" />
           <StatCard label="Entries" value={totals.n.toLocaleString('en-US')} sub={team === 'both' ? 'Darwin + Mauricio' : TEAM_LABEL[team]} tone="muted" />
         </div>
 

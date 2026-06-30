@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react'
 import { css } from '../lib/css.js'
 import { Box } from '../ui/Box.jsx'
 import { StatCard, Badge } from '../ds/index.jsx'
-import { payroll, money, fmtH, fmtDate, META, TEAM_LABEL, TEAM_COLOR } from '../lib/macPayroll.js'
+import { payroll, money, fmtH, fmtDate, META, TEAM_LABEL, TEAM_COLOR, CATEGORIES, CATEGORY_LABEL } from '../lib/macPayroll.js'
+import { downloadCSV } from '../lib/csv.js'
 
 const th = (align = 'left') => `text-align:${align};font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:700;padding:9px 11px;border-bottom:1px solid var(--line);background:var(--panel-2);white-space:nowrap`
 const td = 'padding:9px 11px;border-bottom:1px solid var(--line-soft)'
@@ -13,13 +14,13 @@ const segStyle = (active) => {
 const dateInput = 'background:var(--input-bg);border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-size:12.5px;color:var(--text);outline:none;font-family:var(--font-mono)'
 
 export default function PayrollScreen({ v }) {
-  // Real payroll (Mac Painters) is the default; the original demo cycle stays available.
   const [mode, setMode] = useState('mac')
   const [team, setTeam] = useState('both')
+  const [cat, setCat] = useState('all')
   const [from, setFrom] = useState(META.dateMin)
   const [to, setTo] = useState(META.dateMax)
   const { rows, totals } = useMemo(() => payroll(team, from, to, {}), [team, from, to])
-  const sorted = useMemo(() => [...rows].sort((a, b) => b.net - a.net), [rows])
+  const tableRows = useMemo(() => (cat === 'all' ? rows : rows.filter((r) => r.category === cat)).slice().sort((a, b) => b.value - a.value), [rows, cat])
 
   const ModeToggle = (
     <div style={css('display:inline-flex;background:var(--inset);border:1px solid var(--line-soft);border-radius:8px;padding:2px;gap:2px')}>
@@ -71,13 +72,21 @@ export default function PayrollScreen({ v }) {
     )
   }
 
-  // ---- Mac Painters (real) ----
+  const exportCSV = () => {
+    const headers = ['Employee', 'Role', 'Pay type', 'Rate', 'Teams', 'Category', 'Hours', 'Days', 'Est. gross', 'Base', 'Additions', 'Deductions', 'Net', 'Entries', 'Last active']
+    const data = tableRows.map((r) => [r.name, r.role, r.payType, r.rate ?? '', r.teamsIn.join('+'), r.category, r.hours, r.days, Math.round(r.est), Math.round(r.subtotal), Math.round(r.addition), Math.round(r.deduction), Math.round(r.net), r.n, r.last])
+    downloadCSV(`mac-painters-payroll_${team}_${cat}_${from}_${to}.csv`, headers, data)
+  }
+
   return (
     <div style={css('height:100%;display:flex;flex-direction:column;min-height:0')}>
       <div style={css('display:flex;gap:10px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-shrink:0;flex-wrap:wrap')}>
         {ModeToggle}
         <div style={css('display:inline-flex;background:var(--inset);border:1px solid var(--line-soft);border-radius:8px;padding:2px;gap:2px')}>
           {['both', 'darwin', 'mauricio'].map((t) => <button key={t} onClick={() => setTeam(t)} style={css(segStyle(team === t))}>{TEAM_LABEL[t]}</button>)}
+        </div>
+        <div style={css('display:inline-flex;background:var(--inset);border:1px solid var(--line-soft);border-radius:8px;padding:2px;gap:2px')}>
+          {CATEGORIES.map((c) => <button key={c} onClick={() => setCat(c)} style={css(segStyle(cat === c))}>{CATEGORY_LABEL[c]}</button>)}
         </div>
         <span style={css('display:inline-flex;align-items:center;gap:6px')}>
           <input type="date" value={from} min={META.dateMin} max={to} onChange={(e) => setFrom(e.target.value || META.dateMin)} style={css(dateInput)} />
@@ -86,15 +95,15 @@ export default function PayrollScreen({ v }) {
         </span>
         <button onClick={() => { setFrom(META.dateMin); setTo(META.dateMax) }} style={css('background:var(--panel-2);border:1px solid var(--line);border-radius:7px;padding:6px 11px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer')}>All dates</button>
         <div style={css('flex:1')} />
-        <span style={css('font-size:11px;color:var(--faint);font-family:var(--font-mono)')}>{fmtDate(from)} – {fmtDate(to)} · {TEAM_LABEL[team]}</span>
+        <button onClick={exportCSV} style={css('display:inline-flex;align-items:center;gap:6px;background:var(--blue);color:#fff;border:1px solid transparent;border-radius:7px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer')}>Export CSV</button>
       </div>
       <div style={css('flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:14px')}>
         <div style={css('display:grid;grid-template-columns:repeat(5,1fr);gap:11px')}>
-          <StatCard label="Employees paid" value={String(rows.length)} sub={totals.shared + ' shared across teams'} tone="blue" />
-          <StatCard label="Hours" value={fmtH(totals.hours)} sub="in this period" tone="muted" />
-          <StatCard label="Est. gross" value={money(totals.est)} sub="hours × rate (paid types)" tone="cyan" />
-          <StatCard label="Deductions" value={money(totals.deduction)} sub="as logged" tone="red" />
-          <StatCard label="Net payroll" value={money(totals.net)} sub="base + additions − deductions" tone="green" />
+          <StatCard label="Employees paid" value={String(tableRows.length)} sub={totals.shared + ' shared across teams'} tone="blue" />
+          <StatCard label="Hours" value={fmtH(totals.hours)} sub={fmtDate(from) + ' – ' + fmtDate(to)} tone="muted" />
+          <StatCard label="Wages" value={money(totals.wages)} sub="hourly · per-day · fixed crew" tone="cyan" />
+          <StatCard label="Contract billing" value={money(totals.billing)} sub="subcontractor job totals" tone="amber" />
+          <StatCard label="Total recorded" value={money(totals.wages + totals.billing)} sub="wages + contract billing" tone="green" />
         </div>
         <div style={css('border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)')}>
           <table style={css('width:100%;border-collapse:collapse;font-size:12.5px')}>
@@ -104,12 +113,13 @@ export default function PayrollScreen({ v }) {
               <th style={css(th('right'))}>−Ded</th><th style={css(th('right'))}>Net</th>
             </tr></thead>
             <tbody>
-              {sorted.map((r) => (
+              {tableRows.map((r) => (
                 <tr key={r.id}>
                   <td style={css(td)}>
                     <div style={css('display:flex;align-items:center;gap:7px')}>
                       <span style={css('font-weight:600')}>{r.name}</span>
                       {r.you && <Badge color="amber">You</Badge>}
+                      {r.category === 'contract' && <Badge color="default">contract</Badge>}
                       {r.status === 'Inactive' && <span style={css('font-size:9.5px;color:var(--faint);border:1px solid var(--line-soft);border-radius:4px;padding:0 5px;text-transform:uppercase')}>inactive</span>}
                     </div>
                     <div style={css('font-size:10px;color:var(--faint-2)')}>{r.role}</div>
@@ -127,7 +137,7 @@ export default function PayrollScreen({ v }) {
           </table>
         </div>
         <div style={css('font-size:11px;color:var(--faint-2);line-height:1.6')}>
-          Real payroll from the merged Darwin + Mauricio books. “Est. gross” = hours × rate for hourly/per-day crew (recorded total for fixed/contract); “Net” = base + additions − deductions as logged. Pick a team and date range to scope the pay period.
+          <strong style={css('color:var(--cyan)')}>Wages</strong> = hours × rate for hourly/per-day crew (recorded total for fixed). <strong style={css('color:var(--amber)')}>Contract billing</strong> = whole-job values logged under subcontractors — split out so it doesn't inflate the wage totals. Use the team toggle + date range to scope the pay period; Export CSV downloads the current selection.
         </div>
       </div>
     </div>

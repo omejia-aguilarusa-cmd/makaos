@@ -93,8 +93,17 @@ their books are merged into one roster:
 - **Drill‑down + wages.** Each entry also carries its base / additions /
   deductions / net, so the roster shows **estimated wages** (hours × rate for
   hourly/per‑day; recorded total for fixed/contract). Click any painter to see
-  their full daily log for the current team + window, and the same numbers drive
-  the **Payroll** screen's "Mac Painters · real" mode.
+  their full daily log for the current team + window.
+- **Wages vs. contract billing.** Subcontractors log whole‑job values (Point
+  Hope, Daniel Island, …) under their row, which dwarfs hourly wages — so the
+  Payroll and Mac Painters KPIs **split** them: *Wages* (hourly/per‑day/fixed
+  crew) vs *Contract billing* (subcontractor job totals), with an All / Wages /
+  Contract filter.
+- **Everywhere it's wired.** The same data drives the **Payroll** screen
+  ("Mac Painters · real" mode), the **Time Logs** screen (the full daily entry
+  log), and the **Schedule** screen (a real work‑timeline heatmap of weekly
+  hours per painter, team‑coloured). Every view has **Export CSV** for the
+  current team + date selection.
 
 ## Notes
 
