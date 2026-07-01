@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { css } from '../lib/css.js'
 import { Badge } from '../ds/index.jsx'
-import { Avatar, avatarStyle, initials, THEAD, TD, Tile } from '../ui/bits.jsx'
+import { Avatar, avatarStyle, initials, THEAD, TD, Tile, useEscapeClose } from '../ui/bits.jsx'
 import {
   payroll, employeeEntries, siteKeyOf, money, fmtH, fmtDate, META, TEAM_LABEL,
 } from '../lib/macPayroll.js'
@@ -56,12 +56,6 @@ export default function PaintersScreen({ crewFilter, onOpenProject }) {
   }, [rows, crew, q])
 
   const sel = selId ? rows.find((r) => r.id === selId) : null
-  useEffect(() => {
-    if (!selId) return
-    const onKey = (e) => { if (e.key === 'Escape') setSelId(null) }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [selId])
 
   const segStyle = (active) => 'background:transparent;border:0;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;color:var(--muted)' + (active ? ';background:var(--panel-3);color:var(--text)' : '')
 
@@ -115,6 +109,7 @@ export default function PaintersScreen({ crewFilter, onOpenProject }) {
 }
 
 function PainterDrawer({ r, onClose, onOpenProject }) {
+  useEscapeClose(onClose)
   const logs = useMemo(() => employeeEntries(r.id, 'both', META.dateMin, META.dateMax).slice(0, 40), [r.id])
   const set = (crewId) => saveCrew(r.id, crewId === crewFor(r.id) ? null : crewId)
   return (

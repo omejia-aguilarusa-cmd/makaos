@@ -1,6 +1,33 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { css } from '../lib/css.js'
 import { Badge } from '../ds/index.jsx'
+
+// Shared Escape stack: every closable overlay (drawer, modal) registers its
+// onClose on mount. A single window listener routes an Escape press to ONLY the
+// most-recently-opened layer, so closing an inner modal doesn't also collapse
+// the drawer beneath it. Order is mount order (empty-deps effect), and onClose
+// is read through a ref so it stays current without reordering the stack.
+const escStack = []
+let escInstalled = false
+function ensureEscListener() {
+  if (escInstalled || typeof window === 'undefined') return
+  escInstalled = true
+  window.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || escStack.length === 0) return
+    e.stopPropagation()
+    escStack[escStack.length - 1]()
+  })
+}
+export function useEscapeClose(onClose) {
+  const ref = useRef(onClose)
+  ref.current = onClose
+  useEffect(() => {
+    ensureEscListener()
+    const fn = () => ref.current && ref.current()
+    escStack.push(fn)
+    return () => { const i = escStack.indexOf(fn); if (i >= 0) escStack.splice(i, 1) }
+  }, [])
+}
 
 // Small shared building blocks for the Projects / Painters / Reports / Change
 // orders / Expenses / Addresses screens, ported to match the Maka OS design.
@@ -53,11 +80,7 @@ export function SectionTitle({ children, right }) {
 
 // Centered modal dialog. Closes on Escape / backdrop click.
 export function Modal({ title, sub, onClose, children, footer, width = 460 }) {
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  useEscapeClose(onClose)
   return (
     <>
       <div onClick={onClose} aria-hidden="true" style={css('position:fixed;inset:0;background:rgba(4,6,10,.55);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);z-index:120')} />

@@ -17,7 +17,10 @@ export function ExpForm({ initial, onSave, onClose, onDelete }) {
   const opts = useMemo(() => projectOptions(), [])
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
   const save = () => {
-    const name = f.projectName || (opts.find((o) => o.key === f.projectKey) || {}).name || f.projectKey
+    // Derive the name from the SELECTED key first, so reassigning the project
+    // dropdown updates the stored name too (not the stale initial one).
+    const opt = opts.find((o) => o.key === f.projectKey)
+    const name = opt ? opt.name : (f.projectName || f.projectKey)
     onSave({ ...f, projectName: name, projectKey: f.projectKey || keyFromName(name), amount: Number(f.amount) || 0 })
     onClose()
   }

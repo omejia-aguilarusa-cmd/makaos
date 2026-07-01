@@ -1,13 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { css } from '../lib/css.js'
 import { Badge } from '../ds/index.jsx'
-import { Tile, Field, INPUT, THEAD, TD, Avatar, signColor, BTN_PRIMARY, Modal } from '../ui/bits.jsx'
+import { Tile, Field, INPUT, THEAD, TD, Avatar, signColor, BTN_PRIMARY, Modal, useEscapeClose } from '../ui/bits.jsx'
 import { money, fmtH, fmtDate, META } from '../lib/macPayroll.js'
 import {
   projectList, projectDetail, PROJECT_STATUS, STATUS_TABS, STATUS_TAB_LABEL, keyFromName,
 } from '../lib/projects.js'
 import {
-  useEdits, saveProjectMeta, addChangeOrder, updateChangeOrder, deleteChangeOrder,
+  useEdits, saveProjectMeta, projectMeta, addChangeOrder, updateChangeOrder, deleteChangeOrder,
   addExpense, updateExpense, deleteExpense, siteSchedule, saveSiteSchedule,
 } from '../lib/edits.js'
 import { COForm } from './ChangeOrdersScreen.jsx'
@@ -37,13 +37,6 @@ export default function ProjectsScreen({ initialKey, onConsumeInitial, onToast }
   useEffect(() => {
     if (initialKey) { setSelKey(initialKey); if (onConsumeInitial) onConsumeInitial() }
   }, [initialKey, onConsumeInitial])
-
-  useEffect(() => {
-    if (!selKey) return
-    const onKey = (e) => { if (e.key === 'Escape') setSelKey(null) }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [selKey])
 
   return (
     <div style={css('height:100%;display:flex;flex-direction:column;min-height:0')}>
@@ -110,6 +103,7 @@ function ProjectDrawer({ pkey, onClose, onToast }) {
   const [editing, setEditing] = useState(false)
   const [coForm, setCoForm] = useState(false)
   const [expForm, setExpForm] = useState(false)
+  useEscapeClose(onClose)
 
   const d = useMemo(() => { void editV; return projectDetail(pkey, 'both', META.dateMin, META.dateMax) }, [editV, pkey])
   if (!d) return null
@@ -234,12 +228,17 @@ function Overview({ d, editing, setEditing, onToast }) {
 }
 
 function FinanceEdit({ p, onToast }) {
-  const [f, setF] = useState({ contract: p.contract || '', clientName: p.clientName || '', clientEmail: p.clientEmail || '', status: p.status, percent: p.percent })
+  // Seed % from the RAW override, not the derived value: '' means "auto"
+  // (time-derived from logged work), so merely editing the contract/client
+  // doesn't silently freeze a project's progress bar.
+  const rawPct = (() => { const m = projectMeta(p.key); return m && m.percent != null ? m.percent : '' })()
+  const [f, setF] = useState({ contract: p.contract || '', clientName: p.clientName || '', clientEmail: p.clientEmail || '', status: p.status, percent: rawPct })
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
   const save = () => {
     saveProjectMeta(p.key, { contract: f.contract === '' ? null : Number(f.contract), clientName: f.clientName, clientEmail: f.clientEmail, status: f.status, percent: f.percent === '' ? null : Number(f.percent) })
     if (onToast) onToast('Saved project details')
   }
+  const isAuto = f.percent === ''
   return (
     <div style={css('background:var(--inset);border:1px solid var(--line-soft);border-radius:9px;padding:13px;display:flex;flex-direction:column;gap:11px')}>
       <div style={css('display:grid;grid-template-columns:1fr 1fr;gap:11px')}>
@@ -250,8 +249,11 @@ function FinanceEdit({ p, onToast }) {
         <Field label="Client name"><input value={f.clientName} onChange={set('clientName')} style={css(INPUT)} /></Field>
         <Field label="Client email"><input value={f.clientEmail} onChange={set('clientEmail')} type="email" style={css(INPUT)} /></Field>
       </div>
-      <Field label={'% complete (' + (f.percent === '' ? 'auto' : f.percent + '%') + ')'}>
-        <input type="range" min="0" max="100" value={f.percent === '' ? p.percent : f.percent} onChange={set('percent')} style={css('width:100%')} />
+      <Field label={'% complete (' + (isAuto ? 'auto · ' + p.percent + '%' : f.percent + '%') + ')'}>
+        <div style={css('display:flex;align-items:center;gap:10px')}>
+          <input type="range" min="0" max="100" value={isAuto ? p.percent : f.percent} onChange={set('percent')} style={css('flex:1')} />
+          {!isAuto && <button onClick={() => setF({ ...f, percent: '' })} style={css('background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:4px 9px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap')}>Reset to auto</button>}
+        </div>
       </Field>
       <div style={css('display:flex;justify-content:flex-end')}>
         <button onClick={save} style={css(BTN_PRIMARY)}>Save details</button>
