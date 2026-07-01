@@ -2,7 +2,9 @@ import React, { useState, useMemo, useEffect } from 'react'
 import { css } from '../lib/css.js'
 import { Badge } from '../ds/index.jsx'
 import { jobSites, siteEntries, filterEntries, employeeById, fmtH, fmtDate, money, META, TEAM_LABEL, TEAM_COLOR } from '../lib/macPayroll.js'
-import { useEdits, siteSchedule, saveSiteSchedule } from '../lib/edits.js'
+import { useEdits, siteSchedule, saveSiteSchedule, addChangeOrder, addExpense } from '../lib/edits.js'
+import { COForm } from './ChangeOrdersScreen.jsx'
+import { ExpForm } from './ExpensesScreen.jsx'
 
 // Gantt timeline for the Schedule page — per project (job site) or per employee.
 // Bars show the actual work span (first → last day logged); per project you can
@@ -29,6 +31,8 @@ export default function GanttView({ ModeToggle }) {
   const [editKey, setEditKey] = useState(null)
   const [sd, setSd] = useState(null) // schedule draft
   const [detail, setDetail] = useState(null) // selected project row for the daily-painter drawer
+  const [coForm, setCoForm] = useState(false)
+  const [expForm, setExpForm] = useState(false)
 
   const D0 = dayNum(META.dateMin)
   const D1 = dayNum(META.dateMax)
@@ -73,17 +77,24 @@ export default function GanttView({ ModeToggle }) {
     const ql = q.trim().toLowerCase()
     const by = {}
     for (const e of filterEntries(team, META.dateMin, META.dateMax)) {
-      const emp = by[e.empId] || (by[e.empId] = { id: e.empId, name: (employeeById(e.empId) || {}).name || e.empId, segs: {}, hours: 0 })
+      const emp = by[e.empId] || (by[e.empId] = { id: e.empId, name: (employeeById(e.empId) || {}).name || e.empId, segs: {}, byDate: {}, hours: 0 })
       emp.hours += e.hours
       const key = e.location || '(no site)'
       const s = emp.segs[key] || (emp.segs[key] = { loc: key, first: e.date, last: e.date, teams: new Set(), hours: 0 })
       if (e.date < s.first) s.first = e.date
       if (e.date > s.last) s.last = e.date
       s.teams.add(e.team); s.hours += e.hours
+      // Track distinct real job sites per day to flag double-booking.
+      if (e.location) (emp.byDate[e.date] = emp.byDate[e.date] || new Set()).add(key)
     }
     return Object.values(by)
       .filter((emp) => !ql || emp.name.toLowerCase().includes(ql))
-      .map((emp) => ({ ...emp, segs: Object.values(emp.segs).map((s) => ({ ...s, teams: [...s.teams] })).sort((a, b) => (a.first < b.first ? -1 : 1)) }))
+      .map((emp) => ({
+        ...emp,
+        segs: Object.values(emp.segs).map((s) => ({ ...s, teams: [...s.teams] })).sort((a, b) => (a.first < b.first ? -1 : 1)),
+        // Days the painter logged at 2+ different sites — a scheduling conflict.
+        conflicts: Object.entries(emp.byDate).filter(([, set]) => set.size > 1).map(([d]) => d).sort(),
+      }))
       .sort((a, b) => b.hours - a.hours)
   }, [team, q, editV])
 
@@ -118,8 +129,14 @@ export default function GanttView({ ModeToggle }) {
           {['both', 'darwin', 'mauricio'].map((t) => <button key={t} onClick={() => setTeam(t)} style={css(seg(team === t))}>{TEAM_LABEL[t]}</button>)}
         </div>
         <input placeholder={group === 'project' ? 'Search job site…' : 'Search employee…'} value={q} onChange={(e) => setQ(e.target.value)} style={css('background:var(--input-bg);border:1px solid var(--line);border-radius:7px;padding:6px 10px;font-size:12.5px;color:var(--text);width:170px;outline:none')} />
+        <div style={css('display:flex;gap:12px;align-items:center;font-size:10.5px;color:var(--faint);margin-left:4px')}>
+          <span style={css('display:inline-flex;align-items:center;gap:5px')}><span style={css('width:10px;height:8px;border-radius:2px;background:#2f82ff')} />In&nbsp;progress</span>
+          <span style={css('display:inline-flex;align-items:center;gap:5px')}><span style={css('width:9px;height:9px;transform:rotate(45deg);border:2px solid var(--red)')} />Deadline</span>
+          {group === 'employee' && <span style={css('display:inline-flex;align-items:center;gap:5px')}><span style={css('width:9px;height:9px;transform:rotate(45deg);background:var(--amber)')} />Double-booked</span>}
+        </div>
         <div style={css('flex:1')} />
-        <span style={css('font-size:10.5px;color:var(--faint)')}>{group === 'project' ? 'Set planned start / deadline / order on a project (✎). ' : ''}Bars = first → last day worked.</span>
+        <button onClick={() => setExpForm(true)} style={css('display:inline-flex;align-items:center;gap:6px;background:var(--panel-2);border:1px solid var(--line);border-radius:7px;padding:6px 11px;font-size:12px;font-weight:600;color:var(--text);cursor:pointer')}>+ Expense</button>
+        <button onClick={() => setCoForm(true)} style={css('display:inline-flex;align-items:center;gap:6px;background:var(--blue);color:#fff;border:1px solid transparent;border-radius:7px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer')}>+ Change order</button>
       </div>
 
       <div style={css('flex:1;overflow:auto;background:var(--bg)')}>
@@ -172,6 +189,10 @@ export default function GanttView({ ModeToggle }) {
             <div key={emp.id} style={css('display:flex;height:' + ROW + 'px;border-bottom:1px solid var(--line-soft)')}>
               <div style={{ ...css('flex-shrink:0;position:sticky;left:0;background:var(--panel);border-right:1px solid var(--line);display:flex;align-items:center;gap:7px;padding:0 12px;z-index:1'), width: NAME_W + 'px' }}>
                 <span style={css('font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1')}>{emp.name}</span>
+                {emp.conflicts.length > 0 && (
+                  <span title={emp.conflicts.length + ' day(s) double-booked across sites: ' + emp.conflicts.map(fmtDate).join(', ')}
+                    style={css('display:inline-flex;align-items:center;gap:3px;background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-line);border-radius:5px;padding:1px 5px;font-size:9.5px;font-weight:800;flex-shrink:0')}>⚠ {emp.conflicts.length}</span>
+                )}
                 <span style={css('font-size:10px;color:var(--faint-2);font-family:var(--font-mono)')}>{fmtH(emp.hours)}</span>
               </div>
               <div style={css('position:relative;flex:1')}>
@@ -179,6 +200,9 @@ export default function GanttView({ ModeToggle }) {
                 {emp.segs.map((s, i) => (
                   <div key={i} title={`${s.loc} · ${fmtDate(s.first)} – ${fmtDate(s.last)} · ${fmtH(s.hours)}`}
                     style={{ position: 'absolute', left: barGeo(s.first, s.last).left + 'px', width: barGeo(s.first, s.last).width + 'px', top: '7px', height: ROW - 14 + 'px', borderRadius: '3px', background: teamColor(s.teams), opacity: 0.85 }} />
+                ))}
+                {emp.conflicts.map((d) => (
+                  <span key={d} title={'Double-booked on ' + fmtDate(d)} style={{ position: 'absolute', left: (clampX(xFor(d)) - 4) + 'px', top: ROW / 2 - 4 + 'px', width: '8px', height: '8px', transform: 'rotate(45deg)', background: 'var(--amber)', border: '1px solid #06080d', zIndex: 2 }} />
                 ))}
               </div>
             </div>
@@ -237,6 +261,9 @@ export default function GanttView({ ModeToggle }) {
           </aside>
         </>
       )}
+
+      {coForm && <COForm initial={{ projectKey: '', title: '', desc: '', requestedBy: '', amount: '', cost: '', status: 'pending', date: '' }} onClose={() => setCoForm(false)} onSave={(r) => addChangeOrder(r)} />}
+      {expForm && <ExpForm initial={{ projectKey: '', title: '', category: 'Materials', vendor: '', amount: '', status: 'unpaid', date: '' }} onClose={() => setExpForm(false)} onSave={(r) => addExpense(r)} />}
     </div>
   )
 }
