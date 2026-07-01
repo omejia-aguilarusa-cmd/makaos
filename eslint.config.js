@@ -32,4 +32,9 @@ export default [
       'no-unused-vars': ['warn', { args: 'after-used', caughtErrors: 'none', varsIgnorePattern: '^(React|_)' }],
     },
   },
+  {
+    // Serverless API functions run on Node, not in the browser.
+    files: ['api/**/*.js'],
+    languageOptions: { globals: { ...globals.node } },
+  },
 ]

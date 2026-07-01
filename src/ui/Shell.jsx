@@ -34,6 +34,28 @@ export function Sidebar({ v }) {
 
       {v.navMain.map((n) => <NavRow key={n.id} n={n} />)}
 
+      {v.navOps && v.navOps.length > 0 && (
+        <>
+          <div style={css('font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint-2);padding:14px 10px 5px;font-weight:700')}>Operations</div>
+          {v.navOps.map((n) => <NavRow key={n.id} n={n} />)}
+        </>
+      )}
+
+      {v.navCrews && v.navCrews.length > 0 && (
+        <>
+          <div style={css('font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint-2);padding:14px 10px 5px;font-weight:700')}>Crews</div>
+          {v.navCrews.map((c) => (
+            <Box key={c.id} onClick={c.onClick}
+              style={css('display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:8px;cursor:pointer;font-size:13px;color:' + (c.active ? 'var(--text)' : 'var(--muted)') + (c.active ? ';background:var(--panel-2);border:1px solid var(--line)' : ';border:1px solid transparent'))}
+              hover="background:var(--panel-2)">
+              <span style={css('width:9px;height:9px;border-radius:50%;margin-left:3px;flex-shrink:0;background:' + c.color)} />
+              <span style={css('flex:1')}>{c.name}</span>
+              <span style={css('font-family:var(--font-mono);font-size:11px;color:var(--faint)')}>{c.count}</span>
+            </Box>
+          ))}
+        </>
+      )}
+
       <div style={css('font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint-2);padding:14px 10px 5px;font-weight:700')}>Workspace</div>
       {v.navWork.map((n) => <NavRow key={n.id} n={n} />)}
 
