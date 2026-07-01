@@ -169,7 +169,7 @@ const SITE_ALIASES = {
 // genuinely different addresses. It does NOT merge a site that is sometimes
 // written with a city and sometimes without (or with a misspelled city) — those
 // residual cases are handled explicitly by SITE_ALIASES, never guessed.
-function siteKeyOf(loc) {
+export function siteKeyOf(loc) {
   let s = normalizeSite(loc).toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '')
   // "432 Delmont Dr/Rd" → drop the alternate suffix; other slashes → spaces.
   s = s.replace(/\b([a-z]+)\/([a-z]+)\b/g, (m, a, b) => (STREET_TYPE[a] && STREET_TYPE[b] ? a : m)).replace(/\//g, ' ')

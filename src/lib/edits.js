@@ -27,9 +27,22 @@ function load() {
       added: Array.isArray(s.added) ? s.added : [],
       schedule: s.schedule || {},
       seq: s.seq || 0,
+      // Project cards (Projects/Reports): operator-entered contract, client,
+      // status and % complete layered onto a real job site (keyed by site key).
+      projects: s.projects || {},
+      // Standalone change-order and expense records the operator adds. These are
+      // the ONLY source of revenue/materials beyond the recorded labor — nothing
+      // is seeded, so a fresh install shows real hours/labor and empty finance
+      // until the operator fills it in.
+      cos: Array.isArray(s.cos) ? s.cos : [],
+      exps: Array.isArray(s.exps) ? s.exps : [],
+      coSeq: s.coSeq || 0,
+      expSeq: s.expSeq || 0,
+      // Painter → crew assignment (Crew A/B/C in the sidebar). Absent = derived.
+      crews: s.crews || {},
     }
   } catch (e) {
-    return { entries: {}, added: [], schedule: {}, seq: 0 }
+    return { entries: {}, added: [], schedule: {}, seq: 0, projects: {}, cos: [], exps: [], coSeq: 0, expSeq: 0, crews: {} }
   }
 }
 
@@ -140,6 +153,139 @@ export function saveSiteSchedule(key, patch) {
   persist()
   bump()
   return next
+}
+
+// ---------------------------------------------------------------------------
+// Project metadata overlay — operator-entered fields on a real job site.
+// Keyed by the site's canonical key. Fields: status, contract (whole-job
+// revenue), clientName, clientEmail, percent (0-100 override), notes.
+// ---------------------------------------------------------------------------
+export function projectMeta(key) { return store.projects[key] || null }
+export function allProjectMeta() { return store.projects }
+
+export function saveProjectMeta(key, patch) {
+  const next = { ...(store.projects[key] || {}) }
+  if (patch.status !== undefined) next.status = patch.status || null
+  if (patch.clientName !== undefined) next.clientName = String(patch.clientName || '')
+  if (patch.clientEmail !== undefined) next.clientEmail = String(patch.clientEmail || '')
+  if (patch.notes !== undefined) next.notes = String(patch.notes || '')
+  // Present only for operator-created projects (no logged entries yet).
+  if (patch.name !== undefined) next.name = String(patch.name || '')
+  if (patch.address !== undefined) next.address = String(patch.address || '')
+  if (patch.team !== undefined) next.team = patch.team || null
+  for (const k of ['contract', 'percent']) {
+    if (patch[k] !== undefined) next[k] = patch[k] === '' || patch[k] == null ? null : round2(patch[k])
+  }
+  next.savedBy = CURRENT_USER.name
+  next.savedAt = nowISO()
+  store.projects[key] = next
+  persist()
+  bump()
+  return next
+}
+
+// ---------------------------------------------------------------------------
+// Change orders — added revenue on a project, with a cost impact. Approved COs
+// count toward project revenue/profit; pending ones don't (surfaced separately).
+// ---------------------------------------------------------------------------
+export function changeOrders() { return store.cos }
+
+export function addChangeOrder(rec) {
+  const id = 'co' + store.coSeq
+  store.coSeq += 1
+  const co = {
+    _id: id,
+    projectKey: rec.projectKey || '',
+    projectName: rec.projectName || '',
+    title: String(rec.title || 'Change order'),
+    desc: String(rec.desc || ''),
+    amount: round2(rec.amount),         // added contract value (revenue)
+    cost: round2(rec.cost),             // added cost impact
+    status: rec.status || 'pending',    // pending | approved | rejected
+    requestedBy: String(rec.requestedBy || ''),
+    date: rec.date || nowISO().slice(0, 10),
+    addedBy: CURRENT_USER.name,
+    addedAt: nowISO(),
+  }
+  store.cos.push(co)
+  persist()
+  bump()
+  return co
+}
+
+export function updateChangeOrder(id, patch) {
+  const co = store.cos.find((c) => c._id === id)
+  if (!co) return null
+  for (const k of ['title', 'desc', 'requestedBy', 'status', 'projectKey', 'projectName', 'date']) if (patch[k] !== undefined) co[k] = patch[k]
+  for (const k of ['amount', 'cost']) if (patch[k] !== undefined) co[k] = round2(patch[k])
+  co.savedBy = CURRENT_USER.name
+  co.savedAt = nowISO()
+  persist()
+  bump()
+  return co
+}
+
+export function deleteChangeOrder(id) {
+  const i = store.cos.findIndex((c) => c._id === id)
+  if (i >= 0) { store.cos.splice(i, 1); persist(); bump() }
+}
+
+// ---------------------------------------------------------------------------
+// Expenses — material/equipment/etc. costs against a project. Count toward
+// project cost (on top of recorded labor).
+// ---------------------------------------------------------------------------
+export function expenses() { return store.exps }
+
+export function addExpense(rec) {
+  const id = 'ex' + store.expSeq
+  store.expSeq += 1
+  const ex = {
+    _id: id,
+    projectKey: rec.projectKey || '',
+    projectName: rec.projectName || '',
+    title: String(rec.title || 'Expense'),
+    category: rec.category || 'Materials',
+    vendor: String(rec.vendor || ''),
+    amount: round2(rec.amount),
+    status: rec.status || 'unpaid',    // paid | unpaid
+    date: rec.date || nowISO().slice(0, 10),
+    addedBy: CURRENT_USER.name,
+    addedAt: nowISO(),
+  }
+  store.exps.push(ex)
+  persist()
+  bump()
+  return ex
+}
+
+export function updateExpense(id, patch) {
+  const ex = store.exps.find((e) => e._id === id)
+  if (!ex) return null
+  for (const k of ['title', 'category', 'vendor', 'status', 'projectKey', 'projectName', 'date']) if (patch[k] !== undefined) ex[k] = patch[k]
+  if (patch.amount !== undefined) ex.amount = round2(patch.amount)
+  ex.savedBy = CURRENT_USER.name
+  ex.savedAt = nowISO()
+  persist()
+  bump()
+  return ex
+}
+
+export function deleteExpense(id) {
+  const i = store.exps.findIndex((e) => e._id === id)
+  if (i >= 0) { store.exps.splice(i, 1); persist(); bump() }
+}
+
+// ---------------------------------------------------------------------------
+// Crew assignment (Crew A/B/C). Absent = derived from the painter's team.
+// ---------------------------------------------------------------------------
+export function crewOf(empId) { return store.crews[empId] || null }
+export function allCrews() { return store.crews }
+
+export function saveCrew(empId, crew) {
+  if (crew) store.crews[empId] = crew
+  else delete store.crews[empId]
+  persist()
+  bump()
 }
 
 // ---------------------------------------------------------------------------

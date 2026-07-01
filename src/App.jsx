@@ -5,13 +5,19 @@ import { Sidebar, Topbar, ToastBar } from './ui/Shell.jsx'
 import DashboardScreen from './screens/DashboardScreen.jsx'
 import ScheduleScreen from './screens/ScheduleScreen.jsx'
 import ProjectsScreen from './screens/ProjectsScreen.jsx'
+import PaintersScreen from './screens/PaintersScreen.jsx'
 import PayrollScreen from './screens/PayrollScreen.jsx'
+import ReportsScreen from './screens/ReportsScreen.jsx'
+import ChangeOrdersScreen from './screens/ChangeOrdersScreen.jsx'
+import ExpensesScreen from './screens/ExpensesScreen.jsx'
+import AddressesScreen from './screens/AddressesScreen.jsx'
 import TimeLogsScreen from './screens/TimeLogsScreen.jsx'
 import IntegrationsScreen from './screens/IntegrationsScreen.jsx'
 import AssistantScreen from './screens/AssistantScreen.jsx'
 import { MAC_PAINTERS } from './lib/macPainters.js'
 import { payroll, money, META, siteCount } from './lib/macPayroll.js'
-import { subscribeEdits } from './lib/edits.js'
+import { subscribeEdits, changeOrders, expenses } from './lib/edits.js'
+import { CREWS, crewFor, projectList } from './lib/projects.js'
 import Spotlight from './overlays/Spotlight.jsx'
 
 // Maka OS — operations console for a commercial painting contractor.
@@ -34,6 +40,8 @@ export default class App extends React.Component {
       connections: s.connections || { sheets: true, drive: true, calendar: false, gmail: false, claude: true, quickbooks: false, slack: false },
       chat: s.chat || [{ role: 'assistant', text: "I'm your Mac Painters copilot. Ask me about hours, wages, who's shared between Darwin and Mauricio, or any painter on the crew." }],
       spotlight: false,
+      projSel: null,   // project key to auto-open in the Projects drawer
+      crewFilter: null, // crew id to pre-filter the Painters roster
       toast: null, chatBusy: false,
       // On-device AI engine (WebLLM). 'idle' until the user turns it on.
       ai: { status: isWebGPUAvailable() ? 'idle' : 'unsupported', progress: 0, note: '' },
@@ -89,6 +97,9 @@ export default class App extends React.Component {
       drive: [['path', { d: 'M9 4h6l5 9H14z' }], ['path', { d: 'M9 4L4 13l3 5 5-9z' }], ['path', { d: 'M7 18h10l3-5H10z' }]],
       mail: [['rect', { x: 3.5, y: 5.5, width: 17, height: 13, rx: 2 }], ['path', { d: 'M4 7.5l8 5.5 8-5.5' }]],
       chat: [['path', { d: 'M5 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H9l-4 4V6a1 1 0 0 1 1-1z' }]],
+      chart: [['path', { d: 'M4 20V4' }], ['path', { d: 'M4 20h16' }], ['path', { d: 'M8 16v-4M12 16V9M16 16v-7' }]],
+      doc: [['path', { d: 'M6 3h8l4 4v14H6z' }], ['path', { d: 'M14 3v4h4' }], ['path', { d: 'M9 12h6M9 15.5h6' }]],
+      receipt: [['path', { d: 'M6 3h12v18l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4L6 21z' }], ['path', { d: 'M9.5 8h5M9.5 11.5h5' }]],
     }
     const p = defs[name] || [['circle', { cx: 12, cy: 12, r: 6 }]]
     return React.createElement(
@@ -99,7 +110,9 @@ export default class App extends React.Component {
   }
 
   // ---------- actions ----------
-  setView(v) { this.setState({ view: v, spotlight: false }) }
+  setView(v) { this.setState({ view: v, spotlight: false, crewFilter: v === 'painters' ? null : this.state.crewFilter }) }
+  openProject(key) { this.setState({ view: 'projects', projSel: key, spotlight: false }) }
+  goCrew(id) { this.setState({ view: 'painters', crewFilter: id, spotlight: false }) }
   toast(m) { this.setState({ toast: m }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: null }), 2000) }
 
   // ---------- nav config ----------
@@ -112,17 +125,31 @@ export default class App extends React.Component {
     return { id, label, icon: this.ic(icon, 16, active ? 'var(--accent)' : 'var(--faint)'), count, hasCount: count != null, style, onClick: () => this.setView(id) }
   }
 
+  crewCounts() {
+    const c = { A: 0, B: 0, C: 0 }
+    for (const e of MAC_PAINTERS.employees) { const id = crewFor(e.id); if (c[id] != null) c[id] += 1 }
+    return c
+  }
+
   shellVals() {
     const v = this.state.view
     const conns = this.state.connections
     const connectedCount = Object.values(conns).filter(Boolean).length
-    const labels = { home: 'Dashboard', schedule: 'Schedule', projects: 'Projects', payroll: 'Payroll', 'time-logs': 'Time Logs', integrations: 'Integrations', assistant: 'Assistant' }
+    const coCount = changeOrders().length
+    const expCount = expenses().length
+    const crewC = this.crewCounts()
+    const labels = { home: 'Dashboard', schedule: 'Schedule', projects: 'Projects', painters: 'Painters', payroll: 'Payroll', reports: 'Reports', 'change-orders': 'Change orders', expenses: 'Expenses', 'time-logs': 'Time Logs', addresses: 'Addresses', integrations: 'Integrations', assistant: 'Assistant' }
     const subs = {
       home: MAC_PAINTERS.meta.employeeCount + ' painters · Darwin + Mauricio · ' + MAC_PAINTERS.meta.shared + ' shared',
       schedule: 'Work timeline · ' + MAC_PAINTERS.meta.dateMin + ' → ' + MAC_PAINTERS.meta.dateMax,
       projects: siteCount() + ' job sites · ' + MAC_PAINTERS.meta.dateMin + ' → ' + MAC_PAINTERS.meta.dateMax,
+      painters: MAC_PAINTERS.meta.employeeCount + ' on the roster · 3 crews',
       payroll: MAC_PAINTERS.meta.employeeCount + ' employees · Darwin + Mauricio · ' + MAC_PAINTERS.meta.shared + ' shared',
+      reports: 'Payroll, labor, P&L, schedule — view or export',
+      'change-orders': coCount + ' recorded',
+      expenses: expCount + ' recorded',
       'time-logs': MAC_PAINTERS.meta.entryCount.toLocaleString('en-US') + ' entries',
+      addresses: siteCount() + ' job-site addresses',
       integrations: connectedCount + ' of 7 connected',
     }
     return {
@@ -130,15 +157,23 @@ export default class App extends React.Component {
         this.navItem('home', 'Dashboard', 'home'),
         this.navItem('schedule', 'Schedule', 'gantt'),
         this.navItem('projects', 'Projects', 'folder', siteCount()),
-        this.navItem('payroll', 'Payroll', 'wallet', MAC_PAINTERS.meta.employeeCount),
-        this.navItem('time-logs', 'Time logs', 'clock'),
+        this.navItem('painters', 'Painters', 'users', MAC_PAINTERS.meta.employeeCount),
+        this.navItem('payroll', 'Payroll', 'wallet'),
+        this.navItem('reports', 'Reports', 'chart'),
       ],
+      navOps: [
+        this.navItem('change-orders', 'Change orders', 'doc', coCount || null),
+        this.navItem('expenses', 'Expenses', 'receipt', expCount || null),
+        this.navItem('time-logs', 'Time logs', 'clock'),
+        this.navItem('addresses', 'Addresses', 'pin', siteCount()),
+      ],
+      navCrews: CREWS.map((c) => ({ id: c.id, name: c.name, sub: c.sub, color: c.color, count: crewC[c.id], active: v === 'painters' && this.state.crewFilter === c.id, onClick: () => this.goCrew(c.id) })),
       navWork: [
         Object.assign(this.navItem('integrations', 'Integrations', 'plug'), { hasDot: connectedCount > 0 }),
         Object.assign(this.navItem('assistant', 'Assistant', 'sparkle'), { hasDot: !!conns.claude }),
       ],
       crumb: { label: labels[v] || 'Mac Painters', sub: subs[v] || '' },
-      isHome: v === 'home', isSchedule: v === 'schedule', isProjects: v === 'projects', isPayroll: v === 'payroll', isTimeLogs: v === 'time-logs', isIntegrations: v === 'integrations', isAssistant: v === 'assistant',
+      isHome: v === 'home', isSchedule: v === 'schedule', isProjects: v === 'projects', isPainters: v === 'painters', isPayroll: v === 'payroll', isReports: v === 'reports', isChangeOrders: v === 'change-orders', isExpenses: v === 'expenses', isTimeLogs: v === 'time-logs', isAddresses: v === 'addresses', isIntegrations: v === 'integrations', isAssistant: v === 'assistant',
       connectedCount, syncSummary: MAC_PAINTERS.meta.employeeCount + ' painters · ' + MAC_PAINTERS.meta.entryCount.toLocaleString('en-US') + ' entries', syncTime: 'imported',
       icSearch: this.ic('search', 14), icGrid: this.ic('grid', 14), icSparkle: this.ic('sparkle', 14), icInbox: this.ic('inbox', 16), icActivity: this.ic('activity', 14), icPin: this.ic('pin', 16), icGridBig: this.ic('grid', 20), icClose: this.ic('close', 15),
       openSpotlight: () => this.setState({ spotlight: true }),
@@ -337,12 +372,16 @@ export default class App extends React.Component {
     const out = []
     if (!ql) return out
     const tn = (t) => (t === 'darwin' ? 'Darwin' : 'Mauricio')
+    // Projects / addresses first (the operator's primary object).
+    for (const p of projectList('both', META.dateMin, META.dateMax, { q: ql }).rows.slice(0, 6)) {
+      out.push({ kind: 'Project', icon: this.ic('folder', 15), title: p.address, sub: (p.city || 'Project') + ' · ' + p.statusLabel + (p.hours ? ' · ' + Math.round(p.hours) + 'h' : ''), onPick: () => { this._spotQ = ''; this.openProject(p.key) } })
+    }
     for (const e of MAC_PAINTERS.employees) {
       if (e.name.toLowerCase().includes(ql) || (e.variants || []).some((v) => v.toLowerCase().includes(ql)) || (e.role || '').toLowerCase().includes(ql)) {
-        out.push({ kind: 'Painter', icon: this.ic('user', 15), title: e.name + (e.you ? ' (You)' : ''), sub: (e.role || '') + ' · ' + (e.teams || []).map(tn).join(' + '), onPick: () => { this._spotQ = ''; this.setView('payroll') } })
+        out.push({ kind: 'Painter', icon: this.ic('user', 15), title: e.name + (e.you ? ' (You)' : ''), sub: (e.role || '') + ' · ' + (e.teams || []).map(tn).join(' + '), onPick: () => { this._spotQ = ''; this.setView('painters') } })
       }
     }
-    return out.slice(0, 10)
+    return out.slice(0, 12)
   }
 
   overlayVals() {
@@ -366,9 +405,14 @@ export default class App extends React.Component {
           <section style={css('flex:1;overflow:auto;min-height:0;position:relative')} data-screen-label={v.crumb.label}>
             {v.isHome && <DashboardScreen onGo={(view) => this.setView(view)} />}
             {v.isSchedule && <ScheduleScreen />}
-            {v.isProjects && <ProjectsScreen />}
+            {v.isProjects && <ProjectsScreen initialKey={this.state.projSel} onConsumeInitial={() => this.setState({ projSel: null })} onToast={(m) => this.toast(m)} />}
+            {v.isPainters && <PaintersScreen crewFilter={this.state.crewFilter} onOpenProject={(key) => this.openProject(key)} />}
             {v.isPayroll && <PayrollScreen />}
+            {v.isReports && <ReportsScreen onGo={(view) => this.setView(view)} />}
+            {v.isChangeOrders && <ChangeOrdersScreen />}
+            {v.isExpenses && <ExpensesScreen />}
             {v.isTimeLogs && <TimeLogsScreen />}
+            {v.isAddresses && <AddressesScreen onOpenProject={(key) => this.openProject(key)} />}
             {v.isIntegrations && <IntegrationsScreen v={v} />}
             {v.isAssistant && <AssistantScreen v={v} />}
           </section>
