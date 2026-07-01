@@ -5,7 +5,6 @@ import { Sidebar, Topbar, ToastBar } from './ui/Shell.jsx'
 import DashboardScreen from './screens/DashboardScreen.jsx'
 import ScheduleScreen from './screens/ScheduleScreen.jsx'
 import ProjectsScreen from './screens/ProjectsScreen.jsx'
-import MacPaintersScreen from './screens/MacPaintersScreen.jsx'
 import PayrollScreen from './screens/PayrollScreen.jsx'
 import TimeLogsScreen from './screens/TimeLogsScreen.jsx'
 import IntegrationsScreen from './screens/IntegrationsScreen.jsx'
@@ -114,13 +113,12 @@ export default class App extends React.Component {
     const v = this.state.view
     const conns = this.state.connections
     const connectedCount = Object.values(conns).filter(Boolean).length
-    const labels = { home: 'Dashboard', schedule: 'Schedule', projects: 'Projects', 'mac-painters': 'Mac Painters', payroll: 'Payroll', 'time-logs': 'Time Logs', integrations: 'Integrations', assistant: 'Assistant' }
+    const labels = { home: 'Dashboard', schedule: 'Schedule', projects: 'Projects', payroll: 'Payroll', 'time-logs': 'Time Logs', integrations: 'Integrations', assistant: 'Assistant' }
     const subs = {
       home: MAC_PAINTERS.meta.employeeCount + ' painters · Darwin + Mauricio · ' + MAC_PAINTERS.meta.shared + ' shared',
       schedule: 'Work timeline · ' + MAC_PAINTERS.meta.dateMin + ' → ' + MAC_PAINTERS.meta.dateMax,
       projects: SITE_COUNT + ' job sites · ' + MAC_PAINTERS.meta.dateMin + ' → ' + MAC_PAINTERS.meta.dateMax,
-      'mac-painters': MAC_PAINTERS.meta.employeeCount + ' employees · Darwin + Mauricio · ' + MAC_PAINTERS.meta.shared + ' shared',
-      payroll: MAC_PAINTERS.meta.dateMin + ' → ' + MAC_PAINTERS.meta.dateMax,
+      payroll: MAC_PAINTERS.meta.employeeCount + ' employees · Darwin + Mauricio · ' + MAC_PAINTERS.meta.shared + ' shared',
       'time-logs': MAC_PAINTERS.meta.entryCount.toLocaleString('en-US') + ' entries',
       integrations: connectedCount + ' of 7 connected',
     }
@@ -129,8 +127,7 @@ export default class App extends React.Component {
         this.navItem('home', 'Dashboard', 'home'),
         this.navItem('schedule', 'Schedule', 'gantt'),
         this.navItem('projects', 'Projects', 'folder', SITE_COUNT),
-        this.navItem('mac-painters', 'Mac Painters', 'users', MAC_PAINTERS.meta.employeeCount),
-        this.navItem('payroll', 'Payroll', 'wallet'),
+        this.navItem('payroll', 'Payroll', 'wallet', MAC_PAINTERS.meta.employeeCount),
         this.navItem('time-logs', 'Time logs', 'clock'),
       ],
       navWork: [
@@ -138,7 +135,7 @@ export default class App extends React.Component {
         Object.assign(this.navItem('assistant', 'Assistant', 'sparkle'), { hasDot: !!conns.claude }),
       ],
       crumb: { label: labels[v] || 'Mac Painters', sub: subs[v] || '' },
-      isHome: v === 'home', isSchedule: v === 'schedule', isProjects: v === 'projects', isMacPainters: v === 'mac-painters', isPayroll: v === 'payroll', isTimeLogs: v === 'time-logs', isIntegrations: v === 'integrations', isAssistant: v === 'assistant',
+      isHome: v === 'home', isSchedule: v === 'schedule', isProjects: v === 'projects', isPayroll: v === 'payroll', isTimeLogs: v === 'time-logs', isIntegrations: v === 'integrations', isAssistant: v === 'assistant',
       connectedCount, syncSummary: MAC_PAINTERS.meta.employeeCount + ' painters · ' + MAC_PAINTERS.meta.entryCount.toLocaleString('en-US') + ' entries', syncTime: 'imported',
       icSearch: this.ic('search', 14), icGrid: this.ic('grid', 14), icSparkle: this.ic('sparkle', 14), icInbox: this.ic('inbox', 16), icActivity: this.ic('activity', 14), icPin: this.ic('pin', 16), icGridBig: this.ic('grid', 20), icClose: this.ic('close', 15),
       openSpotlight: () => this.setState({ spotlight: true }),
@@ -339,7 +336,7 @@ export default class App extends React.Component {
     const tn = (t) => (t === 'darwin' ? 'Darwin' : 'Mauricio')
     for (const e of MAC_PAINTERS.employees) {
       if (e.name.toLowerCase().includes(ql) || (e.variants || []).some((v) => v.toLowerCase().includes(ql)) || (e.role || '').toLowerCase().includes(ql)) {
-        out.push({ kind: 'Painter', icon: this.ic('user', 15), title: e.name + (e.you ? ' (You)' : ''), sub: (e.role || '') + ' · ' + (e.teams || []).map(tn).join(' + '), onPick: () => { this._spotQ = ''; this.setView('mac-painters') } })
+        out.push({ kind: 'Painter', icon: this.ic('user', 15), title: e.name + (e.you ? ' (You)' : ''), sub: (e.role || '') + ' · ' + (e.teams || []).map(tn).join(' + '), onPick: () => { this._spotQ = ''; this.setView('payroll') } })
       }
     }
     return out.slice(0, 10)
@@ -367,7 +364,6 @@ export default class App extends React.Component {
             {v.isHome && <DashboardScreen onGo={(view) => this.setView(view)} />}
             {v.isSchedule && <ScheduleScreen />}
             {v.isProjects && <ProjectsScreen />}
-            {v.isMacPainters && <MacPaintersScreen />}
             {v.isPayroll && <PayrollScreen />}
             {v.isTimeLogs && <TimeLogsScreen />}
             {v.isIntegrations && <IntegrationsScreen v={v} />}
