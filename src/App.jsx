@@ -42,6 +42,8 @@ export default class App extends React.Component {
       spotlight: false,
       projSel: null,   // project key to auto-open in the Projects drawer
       crewFilter: null, // crew id to pre-filter the Painters roster
+      intStatus: null,  // live per-provider status from /api/integrations/status
+      intApiAvailable: false, // is the serverless backend reachable?
       toast: null, chatBusy: false,
       // On-device AI engine (WebLLM). 'idle' until the user turns it on.
       ai: { status: isWebGPUAvailable() ? 'idle' : 'unsupported', progress: 0, note: '' },
@@ -69,6 +71,58 @@ export default class App extends React.Component {
     window.addEventListener('keydown', this._key)
     // Re-render the shell (nav badge, subtitles) when the edit overlay changes.
     this._unsubEdits = subscribeEdits(() => this.forceUpdate())
+    // Handle a return from an OAuth flow (?connect=<provider>&status=<...>),
+    // then load live integration status from the serverless backend.
+    this.handleOAuthReturn()
+    this.refreshIntegrations()
+  }
+
+  // ---------- integrations backend ----------
+  // Card → OAuth provider. The four Google services share one Google OAuth app.
+  cardProvider(id) {
+    return { sheets: 'google', drive: 'google', calendar: 'google', gmail: 'google', claude: 'claude', quickbooks: 'quickbooks', slack: 'slack' }[id]
+  }
+
+  async refreshIntegrations() {
+    try {
+      const r = await fetch('/api/integrations/status')
+      if (!r.ok) throw new Error('status ' + r.status)
+      const data = await r.json()
+      if (!data || !data.providers) throw new Error('bad payload')
+      const conns = {}
+      for (const id of ['sheets', 'drive', 'calendar', 'gmail', 'claude', 'quickbooks', 'slack']) {
+        const p = data.providers[this.cardProvider(id)]
+        conns[id] = !!(p && p.connected)
+      }
+      this.setState({ intStatus: data.providers, intApiAvailable: true, connections: conns })
+    } catch (e) {
+      // No backend (local static preview): keep the existing demo connections.
+      this.setState({ intApiAvailable: false })
+    }
+  }
+
+  handleOAuthReturn() {
+    let params
+    try { params = new URLSearchParams(window.location.search) } catch (e) { return }
+    if (params.get('view') === 'integrations') this.setState({ view: 'integrations' })
+    const connect = params.get('connect'); const status = params.get('status')
+    if (connect && status) {
+      const label = { google: 'Google', slack: 'Slack', quickbooks: 'QuickBooks', claude: 'Claude' }[connect] || connect
+      const msg = status === 'connected' ? 'Connected ' + label
+        : status === 'denied' ? label + ' connection cancelled'
+        : status === 'badstate' ? 'Session expired — please try connecting again'
+        : 'Could not connect ' + label
+      this.toast(msg)
+      try { window.history.replaceState({}, '', window.location.pathname) } catch (e) {}
+    }
+  }
+
+  connectProvider(provider) { try { window.location.href = '/api/oauth/' + provider + '/start' } catch (e) {} }
+  async disconnectProvider(provider, name) {
+    let ok = false
+    try { const r = await fetch('/api/oauth/' + provider + '/disconnect', { method: 'POST' }); ok = r.ok } catch (e) { ok = false }
+    this.toast(ok ? 'Disconnected ' + name : 'Could not disconnect ' + name)
+    this.refreshIntegrations()
   }
   componentWillUnmount() { window.removeEventListener('keydown', this._key); if (this._unsubEdits) this._unsubEdits() }
 
@@ -242,7 +296,29 @@ export default class App extends React.Component {
       return
     }
 
-    // 2) An injected Claude bridge if present, else 3) the built-in grounded responder.
+    // 2) The real Claude proxy (/api/assistant) when ANTHROPIC_API_KEY is set
+    //    server-side. The client sends only the grounded context + turns; the
+    //    key never reaches the browser.
+    const system = this.buildContext() + '\n\nReply as the Maka copilot in 2–5 sentences with specific numbers. Plain text, no markdown headers.'
+    // Anthropic requires the first message to be role 'user' — drop the leading
+    // assistant greeting (and any leading assistant turns) from the window.
+    const turns = base.slice(-10)
+    while (turns.length && turns[0].role !== 'user') turns.shift()
+    try {
+      const r = await fetch('/api/assistant', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ system, messages: turns.map((m) => ({ role: m.role, content: m.text })) }),
+      })
+      if (r.ok) {
+        const d = await r.json()
+        if (d && d.text && String(d.text).trim()) {
+          this.setState({ chat: base.concat([{ role: 'assistant', text: String(d.text).trim() }]), chatBusy: false })
+          return
+        }
+      }
+    } catch (e) { /* fall through to bridge / built-in responder */ }
+
+    // 3) An injected Claude bridge if present, else 4) the built-in grounded responder.
     const prompt = this.buildContext() + '\n\nConversation:\n' + base.slice(-8).map((m) => (m.role === 'user' ? 'Operator: ' : 'Copilot: ') + m.text).join('\n') + '\n\nReply as Copilot in 2–5 sentences with specific numbers.'
     let reply = null
     try { if (window.claude && window.claude.complete) { reply = await window.claude.complete({ messages: [{ role: 'user', content: prompt }] }) } } catch (e) { reply = null }
@@ -334,27 +410,62 @@ export default class App extends React.Component {
       { id: 'slack', name: 'Slack', cat: 'Comms', glyph: 'chat', color: '#a855f7', desc: 'Notify crews about schedule changes, approvals and at-risk jobs in real time.', caps: ['Crew alerts', 'Approvals'] },
     ]
     const btnBase = { display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '6px', padding: '5px 12px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }
+    const live = this.state.intApiAvailable
+    const status = this.state.intStatus || {}
     const cards = defs.map((d) => {
-      const on = !!conns[d.id]
+      const provider = this.cardProvider(d.id)
+      const ps = live ? (status[provider] || { configured: false, connected: false, account: '' }) : null
+      const on = live ? !!ps.connected : !!conns[d.id]
+      const configured = live ? !!ps.configured : true
+      const account = live && ps.account ? ps.account : ''
+      // Action + toggle wiring differs by mode: live OAuth vs local demo toggle.
+      let toggleLabel, onToggle, toggleStyle, statusText, actionLabel, onAction
+      if (live && !configured) {
+        toggleLabel = 'Set up'
+        onToggle = () => this.toast(d.name + ' — add its API credentials in Vercel (see docs/integrations-setup.md)')
+        toggleStyle = Object.assign({}, btnBase, { background: 'transparent', color: 'var(--faint)', border: '1px solid var(--line)', cursor: 'pointer' })
+        statusText = 'Not configured'
+        actionLabel = 'Setup guide'
+        onAction = () => this.toast('See docs/integrations-setup.md for ' + d.name)
+      } else if (on && live && provider === 'claude') {
+        // Claude is API-key based (ANTHROPIC_API_KEY) — there's no per-browser
+        // OAuth session to disconnect; show it as active instead of a fake button.
+        toggleLabel = 'Active'
+        onToggle = () => this.toast('Claude is active via ANTHROPIC_API_KEY — manage it in Vercel')
+        toggleStyle = Object.assign({}, btnBase, { background: 'transparent', color: 'var(--green)', border: '1px solid var(--green-line)', cursor: 'default' })
+        statusText = 'Connected · API key'
+        actionLabel = 'Setup guide'
+        onAction = () => this.toast('See docs/integrations-setup.md — set ANTHROPIC_API_KEY in Vercel')
+      } else if (on) {
+        toggleLabel = 'Disconnect'
+        onToggle = live ? () => this.disconnectProvider(provider, d.name) : () => this.toggleConnection(d.id, d.name)
+        toggleStyle = Object.assign({}, btnBase, { background: 'transparent', color: 'var(--muted)', border: '1px solid var(--line)' })
+        statusText = 'Connected' + (account ? ' · ' + account : '')
+        actionLabel = 'Manage'
+        onAction = () => this.toast(d.name + ' is connected' + (account ? ' as ' + account : ''))
+      } else {
+        toggleLabel = 'Connect'
+        onToggle = live && provider !== 'claude' ? () => this.connectProvider(provider) : () => this.toggleConnection(d.id, d.name)
+        toggleStyle = Object.assign({}, btnBase, { background: 'var(--blue)', color: '#fff', border: '1px solid transparent' })
+        statusText = 'Not connected'
+        actionLabel = 'Learn more'
+        onAction = () => this.toast(d.name + ' — opening setup')
+      }
       return {
         id: d.id, name: d.name, cat: d.cat, desc: d.desc, caps: d.caps, icon: this.ic(d.glyph, 19, d.color),
         logoStyle: { width: '38px', height: '38px', borderRadius: '10px', background: d.color + '22', border: '1px solid ' + d.color + '55', display: 'grid', placeItems: 'center', flexShrink: 0 },
-        ledStatus: on ? 'ok' : 'idle',
-        statusText: on ? 'Connected · synced 2m ago' : 'Not connected',
-        statusStyle: { fontSize: '10.5px', fontWeight: 700, color: on ? 'var(--green)' : 'var(--faint)', fontFamily: 'var(--font-mono)' },
+        ledStatus: on ? 'ok' : configured ? 'idle' : 'bad',
+        statusText,
+        statusStyle: { fontSize: '10.5px', fontWeight: 700, color: on ? 'var(--green)' : configured ? 'var(--faint)' : 'var(--amber)', fontFamily: 'var(--font-mono)' },
         capStyle: { background: 'var(--inset)', border: '1px solid var(--line-soft)', borderRadius: '5px', padding: '2px 7px', fontSize: '10px', color: 'var(--muted)', fontWeight: 600 },
         cardStyle: { background: 'var(--panel)', border: '1px solid var(--line)', borderTop: '3px solid ' + (on ? d.color : 'var(--line)'), borderRadius: '9px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '11px' },
-        actionLabel: on ? 'Sync now' : 'Learn more',
-        onAction: () => this.toast(on ? 'Synced ' + d.name + ' just now' : d.name + ' — opening setup'),
-        toggleLabel: on ? 'Disconnect' : 'Connect',
-        toggleStyle: on ? Object.assign({}, btnBase, { background: 'transparent', color: 'var(--muted)', border: '1px solid var(--line)' }) : Object.assign({}, btnBase, { background: 'var(--blue)', color: '#fff', border: '1px solid transparent' }),
-        onToggle: () => this.toggleConnection(d.id, d.name),
+        actionLabel, onAction, toggleLabel, toggleStyle, onToggle,
       }
     })
-    const connectedCount = defs.filter((d) => conns[d.id]).length
-    // Static sample feed for the demo workspace. Gated by intHasActivity so the
-    // screen can show an empty state when there's nothing to show.
-    const intActivity = [
+    const connectedCount = defs.filter((d) => (live ? (status[this.cardProvider(d.id)] || {}).connected : conns[d.id])).length
+    // In live mode we don't fabricate a sync feed (no sync events are tracked
+    // yet) — show the empty state. The sample feed only appears in demo mode.
+    const intActivity = live ? [] : [
       { text: 'Exported weekly payroll to Google Sheets', time: '2m ago' },
       { text: 'Saved 3 receipts from Riverside to Drive', time: '1h ago' },
       { text: 'Claude summarized Atlas Tower margin risk', time: '3h ago' },
@@ -364,6 +475,9 @@ export default class App extends React.Component {
     return {
       integrationCards: cards, intConnected: String(connectedCount), intTotal: String(defs.length),
       intActivity, intHasActivity: intActivity.length > 0,
+      // No sync telemetry is tracked yet — show em-dashes in live mode rather
+      // than fabricated counts; the demo workspace keeps its sample figures.
+      intRecords: live ? '—' : '1,284', intLastSync: live ? '—' : '2m',
     }
   }
 
