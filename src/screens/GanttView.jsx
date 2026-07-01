@@ -33,7 +33,9 @@ export default function GanttView({ ModeToggle }) {
   const totalDays = D1 - D0 + 1
   const width = totalDays * PXD
   const xFor = (s) => (dayNum(s) - D0) * PXD
-  const wFor = (a, b) => Math.max(5, (dayNum(b) - dayNum(a) + 1) * PXD)
+  const clampX = (x) => Math.max(0, Math.min(width, x))
+  // Clamped bar geometry so a planned date outside the data window can't overflow.
+  const barGeo = (a, b) => { const l = clampX(xFor(a)); const r = clampX(xFor(b) + PXD); return { left: l, width: Math.max(5, r - l) } }
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), [])
   const todayX = todayStr >= META.dateMin && todayStr <= META.dateMax ? xFor(todayStr) : null
 
@@ -54,7 +56,9 @@ export default function GanttView({ ModeToggle }) {
     return rows
       .map((r) => {
         const sc = siteSchedule(r.key) || {}
-        return { ...r, planStart: sc.start || null, deadline: sc.deadline || null, order: sc.order == null ? null : sc.order, start: sc.start || r.first, end: sc.deadline && sc.deadline > r.last ? sc.deadline : r.last }
+        const start = sc.start || r.first
+        const ends = [r.last, sc.deadline, start].filter(Boolean).sort()
+        return { ...r, planStart: sc.start || null, deadline: sc.deadline || null, order: sc.order == null ? null : sc.order, start, end: ends[ends.length - 1] }
       })
       .sort((a, b) => {
         if (a.order != null || b.order != null) return (a.order == null ? 1e9 : a.order) - (b.order == null ? 1e9 : b.order)
@@ -125,10 +129,10 @@ export default function GanttView({ ModeToggle }) {
                 <div style={css('position:relative;flex:1')}>
                   {todayX != null && <span style={{ position: 'absolute', top: 0, bottom: 0, left: todayX + 'px', width: '2px', background: 'var(--blue)', opacity: 0.5 }} />}
                   <div title={`${r.name} · ${fmtDate(r.start)} – ${fmtDate(r.end)} · ${fmtH(r.hours)} · ${r.painters} painters${r.planStart ? ' · planned ' + r.planStart : ''}${r.deadline ? ' · deadline ' + r.deadline : ''}`}
-                    style={{ position: 'absolute', left: xFor(r.start) + 'px', width: wFor(r.start, r.end) + 'px', top: '6px', height: ROW - 12 + 'px', borderRadius: '4px', background: teamColor(r.teamsIn), opacity: 0.9, display: 'flex', alignItems: 'center', padding: '0 6px', overflow: 'hidden', border: r.planStart || r.deadline ? '1px dashed rgba(255,255,255,.5)' : 'none' }}>
+                    style={{ position: 'absolute', left: barGeo(r.start, r.end).left + 'px', width: barGeo(r.start, r.end).width + 'px', top: '6px', height: ROW - 12 + 'px', borderRadius: '4px', background: teamColor(r.teamsIn), opacity: 0.9, display: 'flex', alignItems: 'center', padding: '0 6px', overflow: 'hidden', border: r.planStart || r.deadline ? '1px dashed rgba(255,255,255,.5)' : 'none' }}>
                     <span style={css('font-size:10px;font-weight:600;color:#06080d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis')}>{fmtH(r.hours)}</span>
                   </div>
-                  {r.deadline && <span title={'Deadline ' + r.deadline} style={{ position: 'absolute', left: xFor(r.deadline) - 5 + 'px', top: ROW / 2 - 5 + 'px', width: '10px', height: '10px', transform: 'rotate(45deg)', background: 'var(--panel)', border: '2px solid var(--red)', zIndex: 2 }} />}
+                  {r.deadline && <span title={'Deadline ' + r.deadline} style={{ position: 'absolute', left: (clampX(xFor(r.deadline)) - 5) + 'px', top: ROW / 2 - 5 + 'px', width: '10px', height: '10px', transform: 'rotate(45deg)', background: 'var(--panel)', border: '2px solid var(--red)', zIndex: 2 }} />}
                 </div>
               </div>
               {editKey === r.key && sd && (
@@ -156,7 +160,7 @@ export default function GanttView({ ModeToggle }) {
                 {todayX != null && <span style={{ position: 'absolute', top: 0, bottom: 0, left: todayX + 'px', width: '2px', background: 'var(--blue)', opacity: 0.5 }} />}
                 {emp.segs.map((s, i) => (
                   <div key={i} title={`${s.loc} · ${fmtDate(s.first)} – ${fmtDate(s.last)} · ${fmtH(s.hours)}`}
-                    style={{ position: 'absolute', left: xFor(s.first) + 'px', width: wFor(s.first, s.last) + 'px', top: '7px', height: ROW - 14 + 'px', borderRadius: '3px', background: teamColor(s.teams), opacity: 0.85 }} />
+                    style={{ position: 'absolute', left: barGeo(s.first, s.last).left + 'px', width: barGeo(s.first, s.last).width + 'px', top: '7px', height: ROW - 14 + 'px', borderRadius: '3px', background: teamColor(s.teams), opacity: 0.85 }} />
                 ))}
               </div>
             </div>

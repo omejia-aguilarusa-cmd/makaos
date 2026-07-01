@@ -38,7 +38,7 @@ export default function TimeLogsScreen() {
     void editV
     const ql = q.trim().toLowerCase()
     return filterEntries(team, from, to)
-      .map((e) => ({ ...e, name: (employeeById(e.empId) || {}).name || e.empId, review: needsReview(e) }))
+      .map((e) => ({ ...e, name: (employeeById(e.empId) || {}).name || e.empId, review: needsReview(e, (employeeById(e.empId) || {}).payType) }))
       .filter((e) => !ql || e.name.toLowerCase().includes(ql) || (e.location || '').toLowerCase().includes(ql))
       .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : a.name.localeCompare(b.name)))
   }, [team, from, to, q, editV])
@@ -71,7 +71,20 @@ export default function TimeLogsScreen() {
   const resetEdit = (e) => { clearEntryEdit(e._id); setEditId(null); setDraft(null) }
 
   const openAdd = () => { setEditId(null); setAddDraft({ date: to, empId: empOpts[0] ? empOpts[0].id : '', team: 'darwin', location: '', hours: '', subtotal: '', addition: '', deduction: '', notes: '' }) }
-  const commitAdd = () => { if (!addDraft.empId || !addDraft.date) return; addEntry(addDraft); setAddDraft(null) }
+  const addValid = (d) => {
+    if (!d || !d.empId || !d.date || d.date < META.dateMin || d.date > META.dateMax) return false
+    const h = d.hours === '' ? null : Number(d.hours)
+    const b = d.subtotal === '' ? null : Number(d.subtotal)
+    if (h == null && b == null) return false                 // nothing to log
+    if (h != null && !Number.isFinite(h)) return false
+    if (b != null && !Number.isFinite(b)) return false
+    return true
+  }
+  const commitAdd = () => {
+    if (!addValid(addDraft)) return
+    addEntry({ ...addDraft, hours: addDraft.hours === '' ? 0 : Number(addDraft.hours), subtotal: addDraft.subtotal === '' ? 0 : Number(addDraft.subtotal) })
+    setAddDraft(null)
+  }
 
   const numCell = (v, color) => <td style={css(td + ';text-align:right;font-family:var(--font-mono)' + (color ? ';color:' + color : ''))}>{v}</td>
 
@@ -98,7 +111,7 @@ export default function TimeLogsScreen() {
       {addDraft && (
         <div style={css('padding:12px 16px;border-bottom:1px solid var(--line);background:var(--inset);flex-shrink:0;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end')}>
           <span style={css('font-size:12px;font-weight:700;color:var(--text);align-self:center')}>New time log</span>
-          <label style={css('display:flex;flex-direction:column;gap:3px')}><span style={css('font-size:9.5px;text-transform:uppercase;color:var(--faint);font-weight:700')}>Date</span><input type="date" value={addDraft.date} min={META.dateMin} onChange={(e) => setAddDraft((d) => ({ ...d, date: e.target.value }))} style={css(inp + ';font-family:var(--font-mono)')} /></label>
+          <label style={css('display:flex;flex-direction:column;gap:3px')}><span style={css('font-size:9.5px;text-transform:uppercase;color:var(--faint);font-weight:700')}>Date</span><input type="date" value={addDraft.date} min={META.dateMin} max={META.dateMax} onChange={(e) => setAddDraft((d) => ({ ...d, date: e.target.value }))} style={css(inp + ';font-family:var(--font-mono)')} /></label>
           <label style={css('display:flex;flex-direction:column;gap:3px')}><span style={css('font-size:9.5px;text-transform:uppercase;color:var(--faint);font-weight:700')}>Employee</span><select value={addDraft.empId} onChange={(e) => setAddDraft((d) => ({ ...d, empId: e.target.value }))} style={css(inp + ';min-width:160px')}>{empOpts.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>
           <label style={css('display:flex;flex-direction:column;gap:3px')}><span style={css('font-size:9.5px;text-transform:uppercase;color:var(--faint);font-weight:700')}>Team</span><select value={addDraft.team} onChange={(e) => setAddDraft((d) => ({ ...d, team: e.target.value }))} style={css(inp)}>{['darwin', 'mauricio'].map((t) => <option key={t} value={t}>{TEAM_LABEL[t]}</option>)}</select></label>
           <label style={css('display:flex;flex-direction:column;gap:3px;flex:1;min-width:200px')}><span style={css('font-size:9.5px;text-transform:uppercase;color:var(--faint);font-weight:700')}>Job site</span><select value={addDraft.location} onChange={(e) => setAddDraft((d) => ({ ...d, location: e.target.value }))} style={css(inp + ';min-width:200px')}><option value="">(no site)</option>{siteOpts.map((o) => <option key={o} value={o}>{o}</option>)}</select></label>
@@ -108,10 +121,10 @@ export default function TimeLogsScreen() {
           <label style={css('display:flex;flex-direction:column;gap:3px')}><span style={css('font-size:9.5px;text-transform:uppercase;color:var(--red);font-weight:700')}>−Ded</span><input type="number" step="0.01" value={addDraft.deduction} onChange={(e) => setAddDraft((d) => ({ ...d, deduction: e.target.value }))} style={css(inp + ';width:90px;text-align:right;font-family:var(--font-mono)')} /></label>
           <label style={css('display:flex;flex-direction:column;gap:3px;flex:1;min-width:160px')}><span style={css('font-size:9.5px;text-transform:uppercase;color:var(--faint);font-weight:700')}>Notes</span><input type="text" value={addDraft.notes} onChange={(e) => setAddDraft((d) => ({ ...d, notes: e.target.value }))} style={css(inp + ';min-width:160px')} /></label>
           <div style={css('display:flex;gap:7px')}>
-            <button onClick={commitAdd} disabled={!addDraft.empId || !addDraft.date} style={css('background:var(--blue);color:#fff;border:0;border-radius:6px;padding:7px 13px;font-size:12px;font-weight:700;cursor:pointer')}>Add</button>
+            <button onClick={commitAdd} disabled={!addValid(addDraft)} style={css('background:var(--blue);color:#fff;border:0;border-radius:6px;padding:7px 13px;font-size:12px;font-weight:700;cursor:pointer;' + (addValid(addDraft) ? '' : 'opacity:.5;cursor:not-allowed'))}>Add</button>
             <button onClick={() => setAddDraft(null)} style={css('background:var(--panel-2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:7px 11px;font-size:12px;font-weight:600;cursor:pointer')}>Cancel</button>
           </div>
-          <div style={css('font-size:10px;color:var(--faint-2);flex-basis:100%')}>Manual entries are tagged “added by Oscar Mejia” with the time, and count everywhere (Payroll, Projects, Schedule).</div>
+          <div style={css('font-size:10px;flex-basis:100%;' + (addValid(addDraft) ? 'color:var(--faint-2)' : 'color:var(--amber)'))}>{addValid(addDraft) ? 'Manual entries are tagged “added by Oscar Mejia” with the time, and count everywhere (Payroll, Projects, Schedule).' : 'Enter an employee, a date within ' + META.dateMin + '–' + META.dateMax + ', and at least Hours or Base.'}</div>
         </div>
       )}
 

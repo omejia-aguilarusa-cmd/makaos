@@ -24,8 +24,12 @@ export function employeeOptions() {
 // so a saved edit stays attached to the same real row even if the dataset is
 // regenerated/reordered. Exact duplicates get an occurrence suffix.
 const _idSeen = {}
+const _c = (n) => Math.round((n || 0) * 100)
 const BASE_ENTRIES = MAC_PAINTERS.entries.map((e) => {
-  const base = `${e.date}#${e.empId}#${e.team}#${e.hours}#${Math.round((e.subtotal || 0) * 100)}#${e.location || ''}`
+  // Include every content field (financials + notes) so genuinely-distinct rows
+  // that share date/person/hours/site get distinct, deterministic keys — only
+  // truly identical rows fall back to an occurrence suffix.
+  const base = `${e.date}#${e.empId}#${e.team}#${e.hours}#${_c(e.subtotal)}#${_c(e.addition)}#${_c(e.deduction)}#${_c(e.total)}#${e.location || ''}#${e.notes || ''}`
   _idSeen[base] = (_idSeen[base] || 0) + 1
   return { ...e, _id: _idSeen[base] > 1 ? `${base}#${_idSeen[base]}` : base }
 })
@@ -73,7 +77,7 @@ export function payroll(team, from, to, { q = '', activeOnly = false, category =
     const emp = EMP_BY_ID[id] || { id, name: id, payType: '?', rate: null, role: '', status: 'Active', variants: [], teams: [] }
     const agg = { ...a, days: a.days.size, teams: [...a.teams].sort() }
     const est = estWages(emp, agg)
-    const net = agg.subtotal + agg.addition - agg.deduction
+    const net = agg.total // recorded/edited net, so it matches the entries and receipts
     const contract = isContract(emp)
     return { ...emp, teamsIn: agg.teams, hours: agg.hours, days: agg.days, subtotal: agg.subtotal, addition: agg.addition, deduction: agg.deduction, total: agg.total, est, net, n: agg.n, last: agg.last, category: contract ? 'contract' : 'wage', value: contract ? agg.total : est }
   })

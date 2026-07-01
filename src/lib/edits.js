@@ -146,14 +146,15 @@ export function saveSiteSchedule(key, patch) {
 // Validation — flag an entry that "needs review" (returns a reason or null).
 // Deliberately conservative so it flags genuinely odd rows, not routine ones.
 // ---------------------------------------------------------------------------
-export function needsReview(e) {
+// `payType` (the employee's) gates the hours check — only Hourly staff log a
+// literal shift; Fixed/Per-Day/Contract "hours" are period buckets (e.g. a
+// 40-hr weekly salary), which are routine and must not be flagged.
+export function needsReview(e, payType) {
   const h = Number(e.hours) || 0
-  const net = Number(e.total) || 0
   if (h < 0) return 'Negative hours'
-  if (h > 16) return `Unusually high hours (${h})`
+  if (payType === 'Hourly' && h > 16) return `Unusually high hours (${h})`
   if ((Number(e.addition) || 0) < 0) return 'Negative addition'
   if ((Number(e.deduction) || 0) < 0) return 'Negative deduction'
-  if (net < 0) return 'Negative net — deductions exceed pay'
   if (e.manual && (!e.empId || !e.date)) return 'Missing employee or date'
   return null
 }
