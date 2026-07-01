@@ -2,6 +2,7 @@
 // Painters roster screen and the Payroll screen compute from this, so a team +
 // date-range selection produces the same accurate numbers everywhere.
 import { MAC_PAINTERS } from './macPainters.js'
+import { applyEntryEdit, editsVersion } from './edits.js'
 
 export const META = MAC_PAINTERS.meta
 export const TEAMS = ['both', 'darwin', 'mauricio']
@@ -11,8 +12,20 @@ export const TEAM_COLOR = { darwin: 'blue', mauricio: 'cyan' }
 const EMP_BY_ID = Object.fromEntries(MAC_PAINTERS.employees.map((e) => [e.id, e]))
 export const employeeById = (id) => EMP_BY_ID[id]
 
+// Base entries tagged with a stable id (their index in the immutable dataset).
+const BASE_ENTRIES = MAC_PAINTERS.entries.map((e, i) => ({ ...e, _id: i }))
+let _entriesCache = null
+// Base entries with the local edit overlay applied — recomputed only when an
+// edit is saved. Every filter/aggregation reads this, so edits propagate to
+// Payroll, Projects, Schedule and Time Logs from one place.
+function allEntries() {
+  const v = editsVersion()
+  if (!_entriesCache || _entriesCache.v !== v) _entriesCache = { v, entries: BASE_ENTRIES.map(applyEntryEdit) }
+  return _entriesCache.entries
+}
+
 export function filterEntries(team, from, to) {
-  return MAC_PAINTERS.entries.filter((e) => (team === 'both' || e.team === team) && e.date >= from && e.date <= to)
+  return allEntries().filter((e) => (team === 'both' || e.team === team) && e.date >= from && e.date <= to)
 }
 
 // Estimated gross wages for a selection window.
@@ -215,3 +228,9 @@ export function siteEntries(siteKey, team, from, to, category = 'all') {
 // many entries carry no site at all (surfaced so the count is honest).
 export const SITE_COUNT = jobSites('both', META.dateMin, META.dateMax, {}).rows.length
 export const ENTRIES_WITHOUT_SITE = MAC_PAINTERS.entries.filter((e) => !e.location).length
+
+// Distinct job-site display names for the Payroll location dropdown, so an
+// edited location snaps onto an existing Project site (keeps the two in sync).
+export function siteOptions() {
+  return jobSites('both', META.dateMin, META.dateMax, {}).rows.map((r) => r.name).sort((a, b) => a.localeCompare(b))
+}
