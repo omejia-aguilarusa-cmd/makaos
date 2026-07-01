@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { css } from '../lib/css.js'
 import { Badge } from '../ds/index.jsx'
-import { jobSites, siteEntries, filterEntries, employeeById, fmtH, fmtDate, money, META, TEAM_LABEL, TEAM_COLOR } from '../lib/macPayroll.js'
+import { jobSites, siteEntries, filterEntries, employeeById, siteKeyOf, fmtH, fmtDate, money, META, TEAM_LABEL, TEAM_COLOR } from '../lib/macPayroll.js'
 import { useEdits, siteSchedule, saveSiteSchedule, addChangeOrder, addExpense } from '../lib/edits.js'
 import { COForm } from './ChangeOrdersScreen.jsx'
 import { ExpForm } from './ExpensesScreen.jsx'
@@ -84,8 +84,9 @@ export default function GanttView({ ModeToggle }) {
       if (e.date < s.first) s.first = e.date
       if (e.date > s.last) s.last = e.date
       s.teams.add(e.team); s.hours += e.hours
-      // Track distinct real job sites per day to flag double-booking.
-      if (e.location) (emp.byDate[e.date] = emp.byDate[e.date] || new Set()).add(key)
+      // Track distinct real job sites per day (by canonical key, so alias/typo
+      // spellings of one site don't count as two) to flag double-booking.
+      if (e.location) (emp.byDate[e.date] = emp.byDate[e.date] || new Set()).add(siteKeyOf(e.location))
     }
     return Object.values(by)
       .filter((emp) => !ql || emp.name.toLowerCase().includes(ql))

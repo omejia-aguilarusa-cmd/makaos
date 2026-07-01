@@ -119,8 +119,9 @@ export default class App extends React.Component {
 
   connectProvider(provider) { try { window.location.href = '/api/oauth/' + provider + '/start' } catch (e) {} }
   async disconnectProvider(provider, name) {
-    try { await fetch('/api/oauth/' + provider + '/disconnect', { method: 'POST' }) } catch (e) {}
-    this.toast('Disconnected ' + name)
+    let ok = false
+    try { const r = await fetch('/api/oauth/' + provider + '/disconnect', { method: 'POST' }); ok = r.ok } catch (e) { ok = false }
+    this.toast(ok ? 'Disconnected ' + name : 'Could not disconnect ' + name)
     this.refreshIntegrations()
   }
   componentWillUnmount() { window.removeEventListener('keydown', this._key); if (this._unsubEdits) this._unsubEdits() }
@@ -299,10 +300,14 @@ export default class App extends React.Component {
     //    server-side. The client sends only the grounded context + turns; the
     //    key never reaches the browser.
     const system = this.buildContext() + '\n\nReply as the Maka copilot in 2–5 sentences with specific numbers. Plain text, no markdown headers.'
+    // Anthropic requires the first message to be role 'user' — drop the leading
+    // assistant greeting (and any leading assistant turns) from the window.
+    const turns = base.slice(-10)
+    while (turns.length && turns[0].role !== 'user') turns.shift()
     try {
       const r = await fetch('/api/assistant', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ system, messages: base.slice(-10).map((m) => ({ role: m.role, content: m.text })) }),
+        body: JSON.stringify({ system, messages: turns.map((m) => ({ role: m.role, content: m.text })) }),
       })
       if (r.ok) {
         const d = await r.json()
@@ -422,6 +427,15 @@ export default class App extends React.Component {
         statusText = 'Not configured'
         actionLabel = 'Setup guide'
         onAction = () => this.toast('See docs/integrations-setup.md for ' + d.name)
+      } else if (on && live && provider === 'claude') {
+        // Claude is API-key based (ANTHROPIC_API_KEY) — there's no per-browser
+        // OAuth session to disconnect; show it as active instead of a fake button.
+        toggleLabel = 'Active'
+        onToggle = () => this.toast('Claude is active via ANTHROPIC_API_KEY — manage it in Vercel')
+        toggleStyle = Object.assign({}, btnBase, { background: 'transparent', color: 'var(--green)', border: '1px solid var(--green-line)', cursor: 'default' })
+        statusText = 'Connected · API key'
+        actionLabel = 'Setup guide'
+        onAction = () => this.toast('See docs/integrations-setup.md — set ANTHROPIC_API_KEY in Vercel')
       } else if (on) {
         toggleLabel = 'Disconnect'
         onToggle = live ? () => this.disconnectProvider(provider, d.name) : () => this.toggleConnection(d.id, d.name)
@@ -461,6 +475,9 @@ export default class App extends React.Component {
     return {
       integrationCards: cards, intConnected: String(connectedCount), intTotal: String(defs.length),
       intActivity, intHasActivity: intActivity.length > 0,
+      // No sync telemetry is tracked yet — show em-dashes in live mode rather
+      // than fabricated counts; the demo workspace keeps its sample figures.
+      intRecords: live ? '—' : '1,284', intLastSync: live ? '—' : '2m',
     }
   }
 

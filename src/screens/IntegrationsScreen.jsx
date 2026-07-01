@@ -14,8 +14,8 @@ export default function IntegrationsScreen({ v }) {
         </div>
         <div style={css('display:flex;gap:22px;flex-shrink:0')}>
           <div style={css('text-align:right')}><div style={css('font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:700')}>Connected</div><div style={css('font-family:var(--font-mono);font-weight:800;font-size:18px;color:var(--green)')}>{v.intConnected}</div></div>
-          <div style={css('text-align:right')}><div style={css('font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:700')}>Records synced</div><div style={css('font-family:var(--font-mono);font-weight:800;font-size:18px')}>1,284</div></div>
-          <div style={css('text-align:right')}><div style={css('font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:700')}>Last sync</div><div style={css('font-family:var(--font-mono);font-weight:800;font-size:18px')}>2m</div></div>
+          <div style={css('text-align:right')}><div style={css('font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:700')}>Records synced</div><div style={css('font-family:var(--font-mono);font-weight:800;font-size:18px')}>{v.intRecords}</div></div>
+          <div style={css('text-align:right')}><div style={css('font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:700')}>Last sync</div><div style={css('font-family:var(--font-mono);font-weight:800;font-size:18px')}>{v.intLastSync}</div></div>
         </div>
       </div>
 

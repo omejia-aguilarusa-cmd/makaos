@@ -20,6 +20,8 @@ export default async function handler(req, res) {
     .slice(-12)
     .map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: String(m.content || m.text || '').slice(0, 8000) }))
     .filter((m) => m.content)
+  // The Messages API requires the first message to be role 'user'.
+  while (messages.length && messages[0].role !== 'user') messages.shift()
   if (!messages.length) return json(res, 400, { error: 'no_messages' })
 
   try {
