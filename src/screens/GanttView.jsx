@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { css } from '../lib/css.js'
-import { jobSites, filterEntries, employeeById, fmtH, fmtDate, META, TEAM_LABEL } from '../lib/macPayroll.js'
+import { Badge } from '../ds/index.jsx'
+import { jobSites, siteEntries, filterEntries, employeeById, fmtH, fmtDate, money, META, TEAM_LABEL, TEAM_COLOR } from '../lib/macPayroll.js'
 import { useEdits, siteSchedule, saveSiteSchedule } from '../lib/edits.js'
 
 // Gantt timeline for the Schedule page — per project (job site) or per employee.
@@ -27,6 +28,7 @@ export default function GanttView({ ModeToggle }) {
   const [q, setQ] = useState('')
   const [editKey, setEditKey] = useState(null)
   const [sd, setSd] = useState(null) // schedule draft
+  const [detail, setDetail] = useState(null) // selected project row for the daily-painter drawer
 
   const D0 = dayNum(META.dateMin)
   const D1 = dayNum(META.dateMax)
@@ -85,6 +87,22 @@ export default function GanttView({ ModeToggle }) {
       .sort((a, b) => b.hours - a.hours)
   }, [team, q, editV])
 
+  // Daily painter breakdown for the selected project, grouped by date (newest first).
+  const detailDays = useMemo(() => {
+    void editV
+    if (!detail) return []
+    const by = {}
+    for (const e of siteEntries(detail.key, 'both', META.dateMin, META.dateMax)) (by[e.date] = by[e.date] || []).push(e)
+    return Object.keys(by).sort((a, b) => (a < b ? 1 : -1)).map((date) => ({ date, painters: by[date].sort((a, b) => (a.name || '').localeCompare(b.name || '')), hours: by[date].reduce((s, e) => s + e.hours, 0) }))
+  }, [detail, editV])
+
+  useEffect(() => {
+    if (!detail) return
+    const onKey = (e) => { if (e.key === 'Escape') setDetail(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [detail])
+
   const openSched = (r) => { setEditKey(r.key); setSd({ start: r.planStart || '', deadline: r.deadline || '', order: r.order == null ? '' : String(r.order) }) }
   const saveSched = (r) => { saveSiteSchedule(r.key, { start: sd.start, deadline: sd.deadline, order: sd.order }); setEditKey(null); setSd(null) }
   const clearSched = (r) => { saveSiteSchedule(r.key, { start: null, deadline: null, order: null }); setEditKey(null); setSd(null) }
@@ -123,7 +141,7 @@ export default function GanttView({ ModeToggle }) {
               <div style={css('display:flex;height:' + ROW + 'px;border-bottom:1px solid var(--line-soft)')}>
                 <div style={{ ...css('flex-shrink:0;position:sticky;left:0;background:var(--panel);border-right:1px solid var(--line);display:flex;align-items:center;gap:6px;padding:0 10px;z-index:1'), width: NAME_W + 'px' }}>
                   {r.order != null && <span style={css('font-size:9.5px;font-weight:800;color:var(--blue-hi);font-family:var(--font-mono);min-width:16px')}>#{r.order}</span>}
-                  <span style={css('font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1')} title={r.name}>{r.name}</span>
+                  <span onClick={() => setDetail(r)} title={'View daily painters — ' + r.name} style={css('font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;cursor:pointer')}>{r.name}</span>
                   <button onClick={() => (editKey === r.key ? (setEditKey(null), setSd(null)) : openSched(r))} title="Set planned start / deadline / order" style={css('width:22px;height:22px;border-radius:5px;background:transparent;border:1px solid var(--line);cursor:pointer;color:' + (editKey === r.key ? 'var(--blue-hi)' : 'var(--faint)') + ';flex-shrink:0')}>✎</button>
                 </div>
                 <div style={css('position:relative;flex:1')}>
@@ -171,6 +189,54 @@ export default function GanttView({ ModeToggle }) {
           )}
         </div>
       </div>
+
+      {detail && (
+        <>
+          <div onClick={() => setDetail(null)} aria-hidden="true" style={css('position:fixed;inset:0;background:rgba(4,6,10,.5);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);z-index:100')} />
+          <aside role="dialog" aria-modal="true" aria-label={detail.name + ' — daily painters'} style={css('position:fixed;top:12px;right:12px;bottom:12px;width:720px;max-width:94vw;background:var(--panel);border:1px solid var(--line-strong);border-radius:14px;box-shadow:0 28px 70px rgba(0,0,0,.6);z-index:110;display:flex;flex-direction:column;overflow:hidden')}>
+            <div style={css('padding:14px 16px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;gap:10px;flex-shrink:0')}>
+              <div style={css('flex:1;min-width:0')}>
+                <div style={css('font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis')} title={detail.name}>{detail.name}</div>
+                <div style={css('font-size:11.5px;color:var(--faint);display:flex;align-items:center;gap:7px;flex-wrap:wrap')}>
+                  {detail.teamsIn.map((t) => <Badge key={t} color={TEAM_COLOR[t]}>{TEAM_LABEL[t]}</Badge>)}
+                  <span>{detail.painters} painters · {fmtH(detail.hours)} · {fmtDate(detail.first)} – {fmtDate(detail.last)}</span>
+                </div>
+              </div>
+              <button onClick={() => setDetail(null)} style={css('width:28px;height:28px;border-radius:7px;display:grid;place-items:center;background:transparent;border:1px solid var(--line);cursor:pointer;color:var(--muted)')}>✕</button>
+            </div>
+            <div style={css('display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 16px;flex-shrink:0')}>
+              {[['Painters', String(detail.painters)], ['Hours', fmtH(detail.hours)], ['Planned start', detail.planStart ? fmtDate(detail.planStart) : '—'], ['Deadline', detail.deadline ? fmtDate(detail.deadline) : '—']].map(([l, v]) => (
+                <div key={l} style={css('padding:9px 11px;background:var(--inset);border:1px solid var(--line-soft);border-radius:8px')}>
+                  <div style={css('font-size:9.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:3px')}>{l}</div>
+                  <div style={css('font-size:15px;font-weight:800;font-family:var(--font-mono)')}>{v}</div>
+                </div>
+              ))}
+            </div>
+            <div style={css('flex:1;overflow:auto;padding:2px 16px 16px')}>
+              {detailDays.map((day) => (
+                <div key={day.date} style={css('margin-bottom:11px')}>
+                  <div style={css('display:flex;align-items:center;gap:8px;padding:6px 2px')}>
+                    <span style={css('font-size:12px;font-weight:700;font-family:var(--font-mono)')}>{fmtDate(day.date)}</span>
+                    <span style={css('font-size:10.5px;color:var(--faint)')}>{day.painters.length} painter{day.painters.length === 1 ? '' : 's'} · {fmtH(day.hours)}</span>
+                  </div>
+                  <div style={css('border:1px solid var(--line);border-radius:8px;overflow:hidden')}>
+                    {day.painters.map((e, i) => (
+                      <div key={i} style={css('display:flex;align-items:center;gap:10px;padding:7px 11px;font-size:12px;' + (i ? 'border-top:1px solid var(--line-soft)' : ''))}>
+                        <span style={css('font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis')}>{e.name}</span>
+                        <Badge color={TEAM_COLOR[e.team]}>{TEAM_LABEL[e.team]}</Badge>
+                        <span style={css('font-family:var(--font-mono);width:46px;text-align:right;color:var(--muted)')}>{e.hours ? e.hours + 'h' : ''}</span>
+                        <span style={css('font-family:var(--font-mono);width:74px;text-align:right;color:var(--green)')}>{e.total ? money(e.total) : ''}</span>
+                        <span style={css('color:var(--faint-2);width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis')} title={e.notes}>{e.notes || ''}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {detailDays.length === 0 && <div style={css('padding:20px;text-align:center;color:var(--faint)')}>No entries logged for this project.</div>}
+            </div>
+          </aside>
+        </>
+      )}
     </div>
   )
 }
