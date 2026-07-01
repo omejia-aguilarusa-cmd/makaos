@@ -52,11 +52,11 @@ export default function DashboardScreen({ onGo }) {
           <div style={css('background:var(--panel);border:1px solid var(--line);border-radius:8px')}>
             <div style={css('display:flex;align-items:center;gap:8px;padding:11px 14px;background:var(--panel-2);border-bottom:1px solid var(--line-soft);border-radius:8px 8px 0 0')}>
               <span style={css('font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)')}>Top painters by hours</span>
-              <button onClick={() => onGo && onGo('mac-painters')} style={css('margin-left:auto;background:transparent;border:0;color:var(--blue-hi);font-size:11.5px;font-weight:600;cursor:pointer')}>View all →</button>
+              <button onClick={() => onGo && onGo('payroll')} style={css('margin-left:auto;background:transparent;border:0;color:var(--blue-hi);font-size:11.5px;font-weight:600;cursor:pointer')}>View all →</button>
             </div>
             <div>
               {top.map((r) => (
-                <Box key={r.id} onClick={() => onGo && onGo('mac-painters')} style={css('display:flex;align-items:center;gap:11px;padding:10px 14px;border-bottom:1px solid var(--line-soft);cursor:pointer')} hover="background:var(--panel-2)">
+                <Box key={r.id} onClick={() => onGo && onGo('payroll')} style={css('display:flex;align-items:center;gap:11px;padding:10px 14px;border-bottom:1px solid var(--line-soft);cursor:pointer')} hover="background:var(--panel-2)">
                   <div style={css('flex:1;min-width:0')}>
                     <div style={css('display:flex;align-items:center;gap:7px')}>
                       <span style={css('font-size:13px;font-weight:600')}>{r.name}{r.you ? ' (You)' : ''}</span>
