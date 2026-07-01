@@ -3,10 +3,11 @@ import { css } from '../lib/css.js'
 import { Box } from '../ui/Box.jsx'
 import { StatCard, Badge } from '../ds/index.jsx'
 import {
-  jobSites, siteEntries, ENTRIES_WITHOUT_SITE,
+  jobSites, siteEntries, entriesWithoutSite,
   money, fmtH, fmtDate, META, TEAM_LABEL, TEAM_COLOR, CATEGORIES, CATEGORY_LABEL,
 } from '../lib/macPayroll.js'
 import { downloadCSV } from '../lib/csv.js'
+import { useEdits } from '../lib/edits.js'
 
 // Projects — real job sites derived from the payroll `location` field. Each
 // project is a site with the work actually logged against it (hours, recorded
@@ -27,8 +28,9 @@ export default function ProjectsScreen() {
   const [cat, setCat] = useState('all')
   const [sort, setSort] = useState('hours') // hours | wages | billing | painters | entries | name | last
   const [selKey, setSelKey] = useState(null)
+  const editV = useEdits() // refresh when a location edit changes the site set
 
-  const { rows, totals } = useMemo(() => jobSites(team, from, to, { q, category: cat }), [team, from, to, q, cat])
+  const { rows, totals } = useMemo(() => { void editV; return jobSites(team, from, to, { q, category: cat }) }, [team, from, to, q, cat, editV])
   const sorted = useMemo(() => {
     const r = rows.slice()
     r.sort((a, b) =>
@@ -44,7 +46,7 @@ export default function ProjectsScreen() {
   }, [rows, sort])
 
   const sel = selKey ? rows.find((r) => r.key === selKey) : null
-  const selEntries = useMemo(() => (selKey ? siteEntries(selKey, team, from, to, cat) : []), [selKey, team, from, to, cat])
+  const selEntries = useMemo(() => { void editV; return selKey ? siteEntries(selKey, team, from, to, cat) : [] }, [selKey, team, from, to, cat, editV])
 
   // If the selected site drops out of the filtered results (search/team/date/
   // category changed), clear the selection so the drawer doesn't silently
@@ -143,7 +145,7 @@ export default function ProjectsScreen() {
 
         <div style={css('font-size:11px;color:var(--faint-2);line-height:1.6')}>
           Each project is a <strong style={css('color:var(--text)')}>job site</strong> built from the payroll <code>location</code> field — addresses are grouped after light normalization (casing/spacing), so a few hand-typed variants may remain separate.
-          <strong style={css('color:var(--cyan)')}> Wages</strong> and <strong style={css('color:var(--amber)')}>contract</strong> are the recorded $ logged on wage-crew vs. subcontractor entries; <strong style={css('color:var(--text)')}>hours</strong> is the cleanest cross-site metric. {ENTRIES_WITHOUT_SITE} entries have no recorded site and aren't shown here. Click a site for its full daily log.
+          <strong style={css('color:var(--cyan)')}> Wages</strong> and <strong style={css('color:var(--amber)')}>contract</strong> are the recorded $ logged on wage-crew vs. subcontractor entries; <strong style={css('color:var(--text)')}>hours</strong> is the cleanest cross-site metric. {entriesWithoutSite()} entries have no recorded site and aren't shown here. Click a site for its full daily log.
         </div>
       </div>
 

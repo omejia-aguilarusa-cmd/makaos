@@ -5,6 +5,7 @@ import { StatCard, Badge } from '../ds/index.jsx'
 import { payroll, employeeById, employeeEntries, siteOptions, money, fmtH, fmtDate, META, TEAM_LABEL, TEAM_COLOR, CATEGORIES, CATEGORY_LABEL } from '../lib/macPayroll.js'
 import { downloadCSV } from '../lib/csv.js'
 import { useEdits, saveEntryEdit, clearEntryEdit, CURRENT_USER } from '../lib/edits.js'
+import ReceiptOverlay from './Receipt.jsx'
 
 // Payroll — the single view of the merged Darwin + Mauricio payroll roster.
 // Pick a team + pay period (+ optional category/search); every KPI and row
@@ -27,9 +28,10 @@ export default function PayrollScreen() {
   const [sort, setSort] = useState('hours') // hours | est | net | entries | last | name
   const [selId, setSelId] = useState(null)
   const editV = useEdits()                     // re-render when an entry edit is saved/cleared
-  const siteOpts = useMemo(() => siteOptions(), [])
+  const siteOpts = useMemo(() => { void editV; return siteOptions() }, [editV])
   const [editId, setEditId] = useState(null)   // entry._id currently being edited
   const [draft, setDraft] = useState(null)
+  const [receiptIds, setReceiptIds] = useState(null)  // employee ids to print receipts for
 
   // Single source: category is applied here so the KPI totals and the table
   // rows always agree (category is a per-employee property, so filtering by it
@@ -87,7 +89,19 @@ export default function PayrollScreen() {
 
   const beginEdit = (e) => { setEditId(e._id); setDraft({ location: e.location || '', addition: e.addition || 0, deduction: e.deduction || 0, notes: e.notes || '' }) }
   const cancelEdit = () => { setEditId(null); setDraft(null) }
-  const commitEdit = (e) => { saveEntryEdit(e._id, draft); setEditId(null); setDraft(null) }
+  const commitEdit = (e) => {
+    // Send only the fields the user actually changed, with clean number parsing
+    // (empty → 0; non-numeric → skip, never silently wipe).
+    const patch = {}
+    const na = draft.addition === '' ? 0 : Number(draft.addition)
+    const nd = draft.deduction === '' ? 0 : Number(draft.deduction)
+    if (Number.isFinite(na) && na !== (e.addition || 0)) patch.addition = na
+    if (Number.isFinite(nd) && nd !== (e.deduction || 0)) patch.deduction = nd
+    if (draft.notes !== (e.notes || '')) patch.notes = draft.notes
+    if (draft.location !== (e.location || '')) patch.location = draft.location
+    if (Object.keys(patch).length) saveEntryEdit(e._id, patch)
+    setEditId(null); setDraft(null)
+  }
   const resetEdit = (e) => { clearEntryEdit(e._id); setEditId(null); setDraft(null) }
   const fmtWhen = (iso) => { try { return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) } catch (err) { return '' } }
   const editInput = 'background:var(--input-bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:12px;color:var(--text);outline:none;font-family:var(--font-mono)'
@@ -111,6 +125,7 @@ export default function PayrollScreen() {
         </div>
         <input placeholder="Search employee…" value={q} onChange={(e) => setQ(e.target.value)} style={css('background:var(--input-bg);border:1px solid var(--line);border-radius:7px;padding:6px 10px;font-size:12.5px;color:var(--text);width:170px;outline:none')} />
         <div style={css('flex:1')} />
+        <button onClick={() => setReceiptIds(sorted.map((r) => r.id))} title="Printable pay receipts for everyone in this selection" style={css('display:inline-flex;align-items:center;gap:6px;background:var(--panel-2);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer')}>🧾 Receipts</button>
         <button onClick={exportCSV} style={css('display:inline-flex;align-items:center;gap:6px;background:var(--blue);color:#fff;border:1px solid transparent;border-radius:7px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer')}>Export CSV</button>
       </div>
 
@@ -186,6 +201,7 @@ export default function PayrollScreen() {
                 <div style={css('font-size:11.5px;color:var(--faint)')}>{sel.role} · {sel.payType}{sel.rate != null ? ' · $' + sel.rate : ''}{sel.variants && sel.variants.length > 1 ? ' · aka ' + sel.variants.filter((v) => v !== sel.name).join(', ') : ''}</div>
               </div>
               <span style={css('font-size:11px;color:var(--faint);font-family:var(--font-mono)')}>{fmtDate(from)} – {fmtDate(to)} · {TEAM_LABEL[team]}</span>
+              <button onClick={() => setReceiptIds([selId])} title="Printable pay receipt for this person + period" style={css('background:var(--panel-2);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:6px 11px;font-size:12px;font-weight:600;cursor:pointer')}>🧾 Receipt</button>
               <button onClick={() => setSelId(null)} style={css('width:28px;height:28px;border-radius:7px;display:grid;place-items:center;background:transparent;border:1px solid var(--line);cursor:pointer;color:var(--muted)')}>✕</button>
             </div>
             <div style={css('display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:14px 16px;flex-shrink:0')}>
@@ -270,6 +286,7 @@ export default function PayrollScreen() {
           </aside>
         </>
       )}
+      {receiptIds && <ReceiptOverlay ids={receiptIds} team={team} from={from} to={to} onClose={() => setReceiptIds(null)} />}
     </div>
   )
 }

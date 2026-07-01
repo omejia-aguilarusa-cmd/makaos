@@ -1,0 +1,18 @@
+/* Print — when a receipt overlay is open, print only the white receipt sheets
+   (hide the app chrome and the overlay toolbar). */
+@media print {
+  body * { visibility: hidden !important; }
+  .receipt-portal,
+  .receipt-portal * { visibility: visible !important; }
+  .receipt-portal { position: absolute !important; inset: 0 !important; overflow: visible !important; background: #fff !important; }
+  .receipt-no-print { display: none !important; }
+  .receipt-sheet {
+    break-after: page;
+    page-break-after: always;
+    box-shadow: none !important;
+    margin: 0 !important;
+    width: auto !important;
+  }
+  .receipt-sheet:last-child { break-after: auto; page-break-after: auto; }
+  @page { margin: 14mm; }
+}
