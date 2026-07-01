@@ -10,7 +10,8 @@ import TimeLogsScreen from './screens/TimeLogsScreen.jsx'
 import IntegrationsScreen from './screens/IntegrationsScreen.jsx'
 import AssistantScreen from './screens/AssistantScreen.jsx'
 import { MAC_PAINTERS } from './lib/macPainters.js'
-import { payroll, money, META, SITE_COUNT } from './lib/macPayroll.js'
+import { payroll, money, META, siteCount } from './lib/macPayroll.js'
+import { subscribeEdits } from './lib/edits.js'
 import Spotlight from './overlays/Spotlight.jsx'
 
 // Maka OS — operations console for a commercial painting contractor.
@@ -58,8 +59,10 @@ export default class App extends React.Component {
       if (e.key === 'Escape') this.setState({ spotlight: false })
     }
     window.addEventListener('keydown', this._key)
+    // Re-render the shell (nav badge, subtitles) when the edit overlay changes.
+    this._unsubEdits = subscribeEdits(() => this.forceUpdate())
   }
-  componentWillUnmount() { window.removeEventListener('keydown', this._key) }
+  componentWillUnmount() { window.removeEventListener('keydown', this._key); if (this._unsubEdits) this._unsubEdits() }
 
   // ---------- icons ----------
   ic(name, size, color) {
@@ -117,7 +120,7 @@ export default class App extends React.Component {
     const subs = {
       home: MAC_PAINTERS.meta.employeeCount + ' painters · Darwin + Mauricio · ' + MAC_PAINTERS.meta.shared + ' shared',
       schedule: 'Work timeline · ' + MAC_PAINTERS.meta.dateMin + ' → ' + MAC_PAINTERS.meta.dateMax,
-      projects: SITE_COUNT + ' job sites · ' + MAC_PAINTERS.meta.dateMin + ' → ' + MAC_PAINTERS.meta.dateMax,
+      projects: siteCount() + ' job sites · ' + MAC_PAINTERS.meta.dateMin + ' → ' + MAC_PAINTERS.meta.dateMax,
       payroll: MAC_PAINTERS.meta.employeeCount + ' employees · Darwin + Mauricio · ' + MAC_PAINTERS.meta.shared + ' shared',
       'time-logs': MAC_PAINTERS.meta.entryCount.toLocaleString('en-US') + ' entries',
       integrations: connectedCount + ' of 7 connected',
@@ -126,7 +129,7 @@ export default class App extends React.Component {
       navMain: [
         this.navItem('home', 'Dashboard', 'home'),
         this.navItem('schedule', 'Schedule', 'gantt'),
-        this.navItem('projects', 'Projects', 'folder', SITE_COUNT),
+        this.navItem('projects', 'Projects', 'folder', siteCount()),
         this.navItem('payroll', 'Payroll', 'wallet', MAC_PAINTERS.meta.employeeCount),
         this.navItem('time-logs', 'Time logs', 'clock'),
       ],

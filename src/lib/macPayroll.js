@@ -2,7 +2,7 @@
 // Painters roster screen and the Payroll screen compute from this, so a team +
 // date-range selection produces the same accurate numbers everywhere.
 import { MAC_PAINTERS } from './macPainters.js'
-import { applyEntryEdit, editsVersion } from './edits.js'
+import { applyEntryEdit, editsVersion, addedEntries } from './edits.js'
 
 export const META = MAC_PAINTERS.meta
 export const TEAMS = ['both', 'darwin', 'mauricio']
@@ -12,15 +12,34 @@ export const TEAM_COLOR = { darwin: 'blue', mauricio: 'cyan' }
 const EMP_BY_ID = Object.fromEntries(MAC_PAINTERS.employees.map((e) => [e.id, e]))
 export const employeeById = (id) => EMP_BY_ID[id]
 
-// Base entries tagged with a stable id (their index in the immutable dataset).
-const BASE_ENTRIES = MAC_PAINTERS.entries.map((e, i) => ({ ...e, _id: i }))
+// Employees for the "add time log" picker (keeps manual entries tied to the
+// real roster so they aggregate everywhere).
+export function employeeOptions() {
+  return MAC_PAINTERS.employees
+    .map((e) => ({ id: e.id, name: e.name, team: (e.teams || [])[0] || 'darwin' }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+// Base entries tagged with a CONTENT-derived stable id (not the array index),
+// so a saved edit stays attached to the same real row even if the dataset is
+// regenerated/reordered. Exact duplicates get an occurrence suffix.
+const _idSeen = {}
+const _c = (n) => Math.round((n || 0) * 100)
+const BASE_ENTRIES = MAC_PAINTERS.entries.map((e) => {
+  // Include every content field (financials + notes) so genuinely-distinct rows
+  // that share date/person/hours/site get distinct, deterministic keys — only
+  // truly identical rows fall back to an occurrence suffix.
+  const base = `${e.date}#${e.empId}#${e.team}#${e.hours}#${_c(e.subtotal)}#${_c(e.addition)}#${_c(e.deduction)}#${_c(e.total)}#${e.location || ''}#${e.notes || ''}`
+  _idSeen[base] = (_idSeen[base] || 0) + 1
+  return { ...e, _id: _idSeen[base] > 1 ? `${base}#${_idSeen[base]}` : base }
+})
 let _entriesCache = null
 // Base entries with the local edit overlay applied — recomputed only when an
 // edit is saved. Every filter/aggregation reads this, so edits propagate to
 // Payroll, Projects, Schedule and Time Logs from one place.
 function allEntries() {
   const v = editsVersion()
-  if (!_entriesCache || _entriesCache.v !== v) _entriesCache = { v, entries: BASE_ENTRIES.map(applyEntryEdit) }
+  if (!_entriesCache || _entriesCache.v !== v) _entriesCache = { v, entries: BASE_ENTRIES.concat(addedEntries()).map(applyEntryEdit) }
   return _entriesCache.entries
 }
 
@@ -58,7 +77,7 @@ export function payroll(team, from, to, { q = '', activeOnly = false, category =
     const emp = EMP_BY_ID[id] || { id, name: id, payType: '?', rate: null, role: '', status: 'Active', variants: [], teams: [] }
     const agg = { ...a, days: a.days.size, teams: [...a.teams].sort() }
     const est = estWages(emp, agg)
-    const net = agg.subtotal + agg.addition - agg.deduction
+    const net = agg.total // recorded/edited net, so it matches the entries and receipts
     const contract = isContract(emp)
     return { ...emp, teamsIn: agg.teams, hours: agg.hours, days: agg.days, subtotal: agg.subtotal, addition: agg.addition, deduction: agg.deduction, total: agg.total, est, net, n: agg.n, last: agg.last, category: contract ? 'contract' : 'wage', value: contract ? agg.total : est }
   })
@@ -226,8 +245,20 @@ export function siteEntries(siteKey, team, from, to, category = 'all') {
 
 // Distinct job-site count over the full window (for the sidebar badge), and how
 // many entries carry no site at all (surfaced so the count is honest).
-export const SITE_COUNT = jobSites('both', META.dateMin, META.dateMax, {}).rows.length
-export const ENTRIES_WITHOUT_SITE = MAC_PAINTERS.entries.filter((e) => !e.location).length
+// Live (edit-aware, version-cached) counts, so the sidebar badge and the
+// Projects note stay accurate after location edits change the site set.
+let _siteCountCache = null
+export function siteCount() {
+  const v = editsVersion()
+  if (!_siteCountCache || _siteCountCache.v !== v) _siteCountCache = { v, n: jobSites('both', META.dateMin, META.dateMax, {}).rows.length }
+  return _siteCountCache.n
+}
+let _noSiteCache = null
+export function entriesWithoutSite() {
+  const v = editsVersion()
+  if (!_noSiteCache || _noSiteCache.v !== v) _noSiteCache = { v, n: allEntries().filter((e) => !e.location).length }
+  return _noSiteCache.n
+}
 
 // Distinct job-site display names for the Payroll location dropdown, so an
 // edited location snaps onto an existing Project site (keeps the two in sync).
