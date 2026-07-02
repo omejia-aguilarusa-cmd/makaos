@@ -3,20 +3,22 @@ import { css } from '../lib/css.js'
 import { Box } from '../ui/Box.jsx'
 import { StatCard, Badge } from '../ds/index.jsx'
 import { payroll, filterEntries, employeeById, money, fmtH, fmtDate, META, TEAM_LABEL, TEAM_COLOR } from '../lib/macPayroll.js'
+import { useEdits } from '../lib/edits.js'
 
 // Real dashboard for Maka Painters — a live summary of the merged Darwin +
 // Mauricio payroll. No demo data.
 export default function DashboardScreen({ onGo }) {
-  const all = useMemo(() => payroll('both', META.dateMin, META.dateMax, {}), [])
-  const dar = useMemo(() => payroll('darwin', META.dateMin, META.dateMax, {}), [])
-  const mau = useMemo(() => payroll('mauricio', META.dateMin, META.dateMax, {}), [])
+  const editV = useEdits() // live: edits (and Sheets-sync merges) update the numbers
+  const all = useMemo(() => { void editV; return payroll('both', META.dateMin, META.dateMax, {}) }, [editV])
+  const dar = useMemo(() => { void editV; return payroll('darwin', META.dateMin, META.dateMax, {}) }, [editV])
+  const mau = useMemo(() => { void editV; return payroll('mauricio', META.dateMin, META.dateMax, {}) }, [editV])
   const top = useMemo(() => [...all.rows].sort((a, b) => b.hours - a.hours).slice(0, 8), [all])
   const recent = useMemo(
-    () => filterEntries('both', META.dateMin, META.dateMax)
+    () => { void editV; return filterEntries('both', META.dateMin, META.dateMax)
       .map((e) => ({ ...e, name: (employeeById(e.empId) || {}).name || e.empId }))
       .sort((a, b) => (a.date < b.date ? 1 : -1))
-      .slice(0, 9),
-    [],
+      .slice(0, 9) },
+    [editV],
   )
   const maxH = Math.max(dar.totals.hours, mau.totals.hours, 1)
   const teamCard = (label, color, r) => (

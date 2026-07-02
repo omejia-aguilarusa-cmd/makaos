@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { css } from '../lib/css.js'
+import { registerEsc } from '../ui/bits.jsx'
 import { Box } from '../ui/Box.jsx'
 import { StatCard, Badge } from '../ds/index.jsx'
 import { payroll, employeeById, employeeEntries, siteOptions, money, fmtH, fmtDate, META, TEAM_LABEL, TEAM_COLOR, CATEGORIES, CATEGORY_LABEL } from '../lib/macPayroll.js'
@@ -61,13 +62,11 @@ export default function PayrollScreen() {
     if (selId && !rows.some((r) => r.id === selId)) setSelId(null)
   }, [rows, selId])
 
-  // Close the detail drawer on Escape (local state — out of reach of the
-  // app-level Escape handler).
+  // Close the detail drawer on Escape via the shared overlay stack, so only
+  // the topmost layer (receipt overlay, modal, spotlight) handles the key.
   useEffect(() => {
     if (!selId) return
-    const onKey = (e) => { if (e.key === 'Escape') setSelId(null) }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    return registerEsc(() => setSelId(null))
   }, [selId])
 
   // Reset the row editor whenever the selected person changes or the drawer closes.
@@ -76,7 +75,7 @@ export default function PayrollScreen() {
   const exportCSV = () => {
     const headers = ['Employee', 'Role', 'Pay type', 'Rate', 'Teams', 'Category', 'Hours', 'Days', 'Est. gross', 'Base', 'Additions', 'Deductions', 'Net', 'Entries', 'Last active']
     const data = sorted.map((r) => [r.name, r.role, r.payType, r.rate ?? '', r.teamsIn.join('+'), r.category, r.hours, r.days, Math.round(r.est), Math.round(r.subtotal), Math.round(r.addition), Math.round(r.deduction), Math.round(r.net), r.n, r.last])
-    downloadCSV(`mac-painters-payroll_${team}_${cat}_${from}_${to}.csv`, headers, data)
+    downloadCSV(`maka-painters-payroll_${team}_${cat}_${from}_${to}.csv`, headers, data)
   }
 
   const Th = ({ children, k, num }) => (

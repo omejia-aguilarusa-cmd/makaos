@@ -20,6 +20,7 @@ import { subscribeEdits, changeOrders, expenses } from './lib/edits.js'
 import { CREWS, crewFor, projectList } from './lib/projects.js'
 import Spotlight from './overlays/Spotlight.jsx'
 import { startSheetSync } from './lib/sheetSync.js'
+import { setEscSuppressor } from './ui/bits.jsx'
 
 // Maka OS — operations console for a commercial painting contractor.
 //
@@ -85,6 +86,9 @@ export default class App extends React.Component {
 
   componentDidMount() {
     this.applyTheme(this.state.theme)
+    // While Spotlight is open, Escape belongs to it — drawers/modals underneath
+    // (the bits.jsx escape stack) must not also close on the same keypress.
+    setEscSuppressor(() => this.state.spotlight)
     this._key = (e) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); this.setState({ spotlight: true }) }
       if (e.key === 'Escape') this.setState({ spotlight: false })
@@ -310,11 +314,13 @@ export default class App extends React.Component {
     if (this.state.ai.status === 'ready') {
       const messages = [{ role: 'system', content: this.buildContext() + '\n\nReply as the Maka copilot in 2–5 sentences with specific numbers. Plain text, no markdown headers.' }]
       for (const m of base.slice(-7)) messages.push({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text })
-      let started = false
-      const replace = (s, t) => (started ? s.chat.slice(0, -1) : s.chat.slice()).concat([{ role: 'assistant', text: t }])
+      // Pure updater: always rebuild as (the turn's base messages) + the current
+      // partial, so double-invocation or event ordering can't eat the user turn.
+      const baseLen = base.length
+      const replace = (s, t) => s.chat.slice(0, baseLen).concat([{ role: 'assistant', text: t }])
       try {
         const full = await streamChat(messages, (partial) => {
-          this.setState((s) => { const c = replace(s, partial); started = true; return { chat: c, chatBusy: false } })
+          this.setState((s) => ({ chat: replace(s, partial), chatBusy: false }))
         })
         const finalText = (full || '').trim() || this.mockReply(text)
         this.setState((s) => ({ chat: replace(s, finalText), chatBusy: false }))

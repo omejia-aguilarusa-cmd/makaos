@@ -121,7 +121,8 @@ export default function PaintersScreen({ crewFilter, onOpenProject }) {
 
 function PainterDrawer({ r, onClose, onOpenProject }) {
   useEscapeClose(onClose)
-  const logs = useMemo(() => employeeEntries(r.id, 'both', META.dateMin, META.dateMax).slice(0, 40), [r.id])
+  const editV = useEdits() // keep logs live while the drawer is open
+  const logs = useMemo(() => { void editV; return employeeEntries(r.id, 'both', META.dateMin, META.dateMax).slice(0, 40) }, [r.id, editV])
   const set = (crewId) => saveCrew(r.id, crewId === crewFor(r.id) ? null : crewId)
   return (
     <>

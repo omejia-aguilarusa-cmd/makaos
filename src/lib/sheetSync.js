@@ -125,7 +125,14 @@ async function callApi(payload) {
 }
 
 export async function pushNow() {
-  if (!cfg.enabled || inFlight) return
+  if (!cfg.enabled) return
+  if (inFlight) {
+    // A pull (or a prior push) is mid-flight — re-arm instead of dropping the
+    // edit, so a portal change can never be silently reverted by the next pull.
+    clearTimeout(pushTimer)
+    pushTimer = setTimeout(pushNow, 1500)
+    return
+  }
   inFlight = true
   setStatus({ state: 'syncing', detail: 'pushing…' })
   try {
@@ -171,7 +178,9 @@ export function startSheetSync() {
   started = true
   subscribeEdits(schedulePush)
   poller = setInterval(() => { if (cfg.enabled) pullNow() }, PULL_INTERVAL)
-  if (cfg.enabled) pushNow()
+  // Pull FIRST when a sheet already exists: edits made in the sheet while the
+  // portal was closed must merge in before push clears + rewrites the tab.
+  if (cfg.enabled) { if (cfg.spreadsheetId) pullNow().then(pushNow); else pushNow() }
 }
 export function stopSheetSync() {
   started = false
@@ -183,6 +192,9 @@ export function sheetSyncEnabled() { return cfg.enabled }
 export function setSheetSyncEnabled(on) {
   cfg.enabled = !!on
   persistCfg()
-  if (on) { setStatus({ state: 'syncing', detail: 'starting…' }); pushNow() }
-  else { clearTimeout(pushTimer); setStatus({ state: 'off', detail: '' }) }
+  if (on) {
+    setStatus({ state: 'syncing', detail: 'starting…' })
+    if (cfg.spreadsheetId) pullNow().then(pushNow)
+    else pushNow()
+  } else { clearTimeout(pushTimer); setStatus({ state: 'off', detail: '' }) }
 }

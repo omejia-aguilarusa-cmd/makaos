@@ -1,6 +1,6 @@
 import crypto from 'node:crypto'
 import { PROVIDERS, isProvider, providerConfigured, creds, redirectUri, buildAuthUrl } from '../../_lib/providers.js'
-import { cookie } from '../../_lib/session.js'
+import { cookie, sessionSecretConfigured } from '../../_lib/session.js'
 import { json, redirect } from '../../_lib/http.js'
 
 // Kick off an OAuth flow: mint a CSRF `state`, stash it in a short-lived cookie,
@@ -8,6 +8,7 @@ import { json, redirect } from '../../_lib/http.js'
 export default function handler(req, res) {
   const provider = req.query.provider
   if (!isProvider(provider)) return json(res, 400, { error: 'unknown_provider' })
+  if (!sessionSecretConfigured()) return json(res, 503, { error: 'no_session_secret', hint: 'Set SESSION_SECRET in Vercel before connecting providers — tokens must not be encrypted with the built-in dev key.' })
   if (!providerConfigured(provider)) {
     const env = PROVIDERS[provider].env
     return json(res, 503, { error: 'not_configured', hint: `Set ${env.id} and ${env.secret} in Vercel to connect ${PROVIDERS[provider].label}.` })

@@ -3,6 +3,7 @@ import { css } from '../lib/css.js'
 import { Badge } from '../ds/index.jsx'
 import { jobSites, siteEntries, filterEntries, employeeById, siteKeyOf, fmtH, fmtDate, money, META, TEAM_LABEL, TEAM_COLOR } from '../lib/macPayroll.js'
 import { useEdits, siteSchedule, saveSiteSchedule, addChangeOrder, addExpense } from '../lib/edits.js'
+import { registerEsc } from '../ui/bits.jsx'
 import { COForm } from './ChangeOrdersScreen.jsx'
 import { ExpForm } from './ExpensesScreen.jsx'
 
@@ -153,9 +154,7 @@ export default function GanttView({ ModeToggle }) {
 
   useEffect(() => {
     if (!detail) return
-    const onKey = (e) => { if (e.key === 'Escape') setDetail(null) }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    return registerEsc(() => setDetail(null))
   }, [detail])
 
   const openSched = (r) => { setEditKey(r.key); setSd({ start: r.planStart || '', deadline: r.deadline || '', order: r.order == null ? '' : String(r.order) }) }
@@ -182,6 +181,7 @@ export default function GanttView({ ModeToggle }) {
     d.dd = dd
     setDrag((prev) => (prev && prev.dd === dd ? prev : { key: d.key, mode: d.mode, dd }))
   }
+  const cancelDrag = () => { dragRef.current = null; setDrag(null) }
   const endDrag = () => {
     const d = dragRef.current
     dragRef.current = null
@@ -235,9 +235,9 @@ export default function GanttView({ ModeToggle }) {
           <button onClick={() => setSchedOnly((v) => !v)} title="Only projects with a planned start / deadline / order"
             style={css('display:inline-flex;align-items:center;gap:5px;border-radius:7px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;' + (schedOnly ? 'background:var(--blue-soft);color:var(--blue-hi);border:1px solid var(--blue)' : 'background:var(--panel-2);color:var(--muted);border:1px solid var(--line)'))}>Scheduled</button>
         )}
-        <select value={sort} onChange={(e) => setSort(e.target.value)} title="Sort rows" style={css(selStyle)}>
-          <option value="order">Sort: order / start</option>
-          <option value="start">Sort: start date</option>
+        <select value={group === 'employee' && !['hours', 'name'].includes(sort) ? 'hours' : sort} onChange={(e) => setSort(e.target.value)} title="Sort rows" style={css(selStyle)}>
+          {group === 'project' && <option value="order">Sort: order / start</option>}
+          {group === 'project' && <option value="start">Sort: start date</option>}
           {group === 'project' && <option value="deadline">Sort: deadline</option>}
           <option value="hours">Sort: hours</option>
           {group === 'project' && <option value="painters">Sort: painters</option>}
@@ -287,12 +287,12 @@ export default function GanttView({ ModeToggle }) {
                     {!r.active && <Badge color="green">done</Badge>}
                     <button onClick={() => (editKey === r.key ? (setEditKey(null), setSd(null)) : openSched(r))} title="Set planned start / deadline / order" style={css('width:22px;height:22px;border-radius:5px;background:transparent;border:1px solid var(--line);cursor:pointer;color:' + (editKey === r.key ? 'var(--blue-hi)' : 'var(--faint)') + ';flex-shrink:0')}>✎</button>
                   </div>
-                  <div style={css('position:relative;flex:1')} onPointerMove={dragging ? onDragMove : undefined} onPointerUp={dragging ? endDrag : undefined}>
+                  <div style={css('position:relative;flex:1')} onPointerMove={dragging ? onDragMove : undefined} onPointerUp={dragging ? endDrag : undefined} onPointerCancel={dragging ? cancelDrag : undefined}>
                     {todayX != null && <span style={{ position: 'absolute', top: 0, bottom: 0, left: todayX + 'px', width: '2px', background: 'var(--blue)', opacity: 0.5 }} />}
 
                     {/* PLAN strip (drag body = move, edges = resize) */}
                     {(pg.hasPlan || dragging) && (
-                      <div onPointerDown={(ev) => beginDrag(ev, r, 'move')} onPointerMove={onDragMove} onPointerUp={endDrag}
+                      <div onPointerDown={(ev) => beginDrag(ev, r, 'move')} onPointerMove={onDragMove} onPointerUp={endDrag} onPointerCancel={cancelDrag} onLostPointerCapture={endDrag}
                         title={`Plan · ${fmtDate(dateOfDay(pg.s))} – ${fmtDate(dateOfDay(pg.e))} — drag to move, edges to resize`}
                         style={{ position: 'absolute', left: pg.left + 'px', width: pg.width + 'px', top: '3px', height: '9px', borderRadius: '4px', background: 'var(--blue-soft)', border: '1.5px solid var(--blue-hi)', cursor: 'grab', zIndex: 3, touchAction: 'none', opacity: dragging ? 1 : 0.95 }}>
                         <span onPointerDown={(ev) => beginDrag(ev, r, 'left')} style={{ position: 'absolute', left: '-3px', top: '-3px', bottom: '-3px', width: '8px', cursor: 'ew-resize', touchAction: 'none' }} />
@@ -301,7 +301,7 @@ export default function GanttView({ ModeToggle }) {
                     )}
 
                     {/* ACTUAL bar (drag creates a plan when none exists) */}
-                    <div onPointerDown={pg.hasPlan ? undefined : (ev) => beginDrag(ev, r, 'move')} onPointerMove={onDragMove} onPointerUp={endDrag}
+                    <div onPointerDown={pg.hasPlan ? undefined : (ev) => beginDrag(ev, r, 'move')} onPointerMove={onDragMove} onPointerUp={endDrag} onPointerCancel={cancelDrag} onLostPointerCapture={endDrag}
                       title={`${r.name} · ${fmtDate(r.first)} – ${fmtDate(r.last)} · ${fmtH(r.hours)} · ${r.painters} painters${pg.hasPlan ? '' : ' — drag to create a plan'}`}
                       style={{ position: 'absolute', left: ag.left + 'px', width: ag.width + 'px', top: '14px', height: '16px', borderRadius: '4px', background: teamColor(r.teamsIn), opacity: 0.9, display: 'flex', alignItems: 'center', gap: '6px', padding: '0 6px', overflow: 'hidden', cursor: pg.hasPlan ? 'default' : 'grab', touchAction: 'none' }}>
                       <span style={css('font-size:10px;font-weight:700;color:#06080d;white-space:nowrap')}>{fmtH(r.hours)}</span>

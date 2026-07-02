@@ -57,15 +57,30 @@ export default async function handler(req, res) {
       const rows = Array.isArray(body.rows) ? body.rows.slice(0, MAX_ROWS) : null
       if (!rows || !rows.length) return send(400, { error: 'no_rows' })
 
-      // Verify the known spreadsheet still exists / is reachable; else create.
+      // Verify the known spreadsheet still exists. Recreate ONLY on a real 404
+      // (deleted) — a transient 429/5xx must not orphan the operator's sheet.
       if (spreadsheetId) {
-        const v = await gfetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=spreadsheetId`)
-        if (!v.ok) spreadsheetId = ''
+        const v = await gfetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=spreadsheetId,sheets(properties(title))`)
+        if (v.ok) {
+          // Re-add the TimeLogs tab if it was renamed/deleted in the sheet UI.
+          const titles = ((v.data.sheets || []).map((sh) => sh.properties && sh.properties.title)).filter(Boolean)
+          if (!titles.includes(TAB)) {
+            const add = await gfetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
+              method: 'POST',
+              body: JSON.stringify({ requests: [{ addSheet: { properties: { title: TAB, gridProperties: { frozenRowCount: 1 } } } }] }),
+            })
+            if (!add.ok) return send(502, { error: 'tab_create_failed', detail: (add.data.error && add.data.error.message) || '' })
+          }
+        } else if (v.status === 404) {
+          spreadsheetId = ''
+        } else {
+          return send(502, { error: 'verify_failed', detail: (v.data.error && v.data.error.message) || String(v.status) })
+        }
       }
       if (!spreadsheetId) {
         const c = await gfetch('https://sheets.googleapis.com/v4/spreadsheets', {
           method: 'POST',
-          body: JSON.stringify({ properties: { title: SHEET_TITLE }, sheets: [{ properties: { title: TAB, gridProperties: { frozenRowCount: 1 } } }] }),
+          body: JSON.stringify({ properties: { title: SHEET_TITLE, locale: 'en_US' }, sheets: [{ properties: { title: TAB, gridProperties: { frozenRowCount: 1 } } }] }),
         })
         if (!c.ok) return send(502, { error: 'create_failed', detail: (c.data.error && c.data.error.message) || '' })
         spreadsheetId = c.data.spreadsheetId
@@ -82,7 +97,7 @@ export default async function handler(req, res) {
 
     if (action === 'pull') {
       if (!spreadsheetId) return send(400, { error: 'no_spreadsheet' })
-      const r = await gfetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${TAB}!A1:N${MAX_ROWS}`)
+      const r = await gfetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${TAB}!A1:N${MAX_ROWS}?valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING`)
       if (!r.ok) return send(r.status === 404 ? 404 : 502, { error: 'read_failed', detail: (r.data.error && r.data.error.message) || '' })
       return send(200, { ok: true, spreadsheetId, values: r.data.values || [] })
     }

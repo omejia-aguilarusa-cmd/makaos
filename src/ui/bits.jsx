@@ -9,14 +9,26 @@ import { Badge } from '../ds/index.jsx'
 // is read through a ref so it stays current without reordering the stack.
 const escStack = []
 let escInstalled = false
+let escSuppressor = null
+// A higher-priority overlay (Spotlight) can claim Escape entirely.
+export function setEscSuppressor(fn) { escSuppressor = fn }
 function ensureEscListener() {
   if (escInstalled || typeof window === 'undefined') return
   escInstalled = true
   window.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || escStack.length === 0) return
+    if (escSuppressor && escSuppressor()) return
     e.stopPropagation()
     escStack[escStack.length - 1]()
   })
+}
+// Non-hook registration for conditionally-open layers (inline drawers):
+// push a closer onto the stack, get back an unregister function.
+export function registerEsc(onClose) {
+  ensureEscListener()
+  const fn = () => onClose()
+  escStack.push(fn)
+  return () => { const i = escStack.indexOf(fn); if (i >= 0) escStack.splice(i, 1) }
 }
 export function useEscapeClose(onClose) {
   const ref = useRef(onClose)
