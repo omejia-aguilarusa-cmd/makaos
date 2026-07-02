@@ -1,6 +1,7 @@
 import React from 'react'
 import { css } from '../lib/css.js'
 import { StatusLED } from '../ds/index.jsx'
+import { Modal } from '../ui/bits.jsx'
 
 // Integrations (connected workspace). Ported 1:1 from the source template's isIntegrations block.
 export default function IntegrationsScreen({ v }) {
@@ -59,6 +60,28 @@ export default function IntegrationsScreen({ v }) {
           )) : <div style={css('padding:14px;color:var(--faint);font-size:12px;text-align:center')}>No sync activity yet</div>}
         </div>
       </div>
+
+      {v.setupInfo && (
+        <Modal title={'Set up ' + v.setupInfo.name} sub="Credentials live in Vercel environment variables — never in the app." onClose={v.closeSetup} width={520}>
+          <div style={css('font-size:12.5px;color:var(--muted);line-height:1.6')}>{v.setupInfo.steps}</div>
+          <div>
+            <div style={css('font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:700;margin-bottom:6px')}>Create credentials at</div>
+            <div style={css('font-size:12.5px;color:var(--text);background:var(--inset);border:1px solid var(--line-soft);border-radius:7px;padding:9px 11px')}>{v.setupInfo.consoleHint}</div>
+          </div>
+          <div>
+            <div style={css('font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:700;margin-bottom:6px')}>Environment variables (Vercel)</div>
+            {v.setupInfo.envs.map((e) => (
+              <div key={e} style={css('font-family:var(--font-mono);font-size:12.5px;color:var(--text);background:var(--inset);border:1px solid var(--line-soft);border-radius:7px;padding:8px 11px;margin-bottom:5px')}>{e}</div>
+            ))}
+          </div>
+          {v.setupInfo.redirect && (
+            <div>
+              <div style={css('font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:700;margin-bottom:6px')}>Authorized redirect URI (register with the provider)</div>
+              <div style={css('font-family:var(--font-mono);font-size:12px;color:var(--text);background:var(--inset);border:1px solid var(--line-soft);border-radius:7px;padding:8px 11px;word-break:break-all')}>{v.setupInfo.redirect}</div>
+            </div>
+          )}
+        </Modal>
+      )}
     </div>
   )
 }

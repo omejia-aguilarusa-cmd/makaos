@@ -7,7 +7,7 @@ import globals from 'globals'
 // The data file and the original design HTML artifacts are intentionally
 // excluded — they're generated/imported, not hand-edited source.
 export default [
-  { ignores: ['dist/**', 'node_modules/**', 'design/**', 'public/**', 'src/lib/macPainters.js'] },
+  { ignores: ['dist/**', 'node_modules/**', 'design/**', 'public/**', 'scripts/**', 'src/lib/macPainters.js'] },
   js.configs.recommended,
   {
     files: ['**/*.{js,jsx}'],

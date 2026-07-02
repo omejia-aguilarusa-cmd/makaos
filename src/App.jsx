@@ -18,6 +18,7 @@ import { MAC_PAINTERS } from './lib/macPainters.js'
 import { payroll, money, META, siteCount } from './lib/macPayroll.js'
 import { subscribeEdits, changeOrders, expenses } from './lib/edits.js'
 import { CREWS, crewFor, projectList } from './lib/projects.js'
+import { buildAlerts } from './lib/alerts.js'
 import Spotlight from './overlays/Spotlight.jsx'
 import { startSheetSync } from './lib/sheetSync.js'
 import { setEscSuppressor } from './ui/bits.jsx'
@@ -47,6 +48,8 @@ export default class App extends React.Component {
       crewFilter: null, // crew id to pre-filter the Painters roster
       intStatus: null,  // live per-provider status from /api/integrations/status
       intApiAvailable: false, // is the serverless backend reachable?
+      notifOpen: false, // topbar notifications popover
+      setupFor: null,   // provider id whose setup-guide modal is open
       toast: null, chatBusy: false,
       // On-device AI engine (WebLLM). 'idle' until the user turns it on.
       ai: { status: isWebGPUAvailable() ? 'idle' : 'unsupported', progress: 0, note: '' },
@@ -193,7 +196,7 @@ export default class App extends React.Component {
   }
 
   // ---------- actions ----------
-  setView(v) { this.setState({ view: v, spotlight: false, crewFilter: v === 'painters' ? null : this.state.crewFilter }) }
+  setView(v) { this.setState({ view: v, spotlight: false, notifOpen: false, crewFilter: v === 'painters' ? null : this.state.crewFilter }) }
   openProject(key) { this.setState({ view: 'projects', projSel: key, spotlight: false }) }
   goCrew(id) { this.setState({ view: 'painters', crewFilter: id, spotlight: false }) }
   toast(m) { this.setState({ toast: m }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: null }), 2000) }
@@ -260,6 +263,11 @@ export default class App extends React.Component {
       connectedCount, syncSummary: MAC_PAINTERS.meta.employeeCount + ' painters · ' + MAC_PAINTERS.meta.entryCount.toLocaleString('en-US') + ' entries', syncTime: 'imported',
       icSearch: this.ic('search', 14), icGrid: this.ic('grid', 14), icSparkle: this.ic('sparkle', 14), icInbox: this.ic('inbox', 16), icActivity: this.ic('activity', 14), icPin: this.ic('pin', 16), icGridBig: this.ic('grid', 20), icClose: this.ic('close', 15),
       openSpotlight: () => this.setState({ spotlight: true }),
+      notifOpen: this.state.notifOpen,
+      notifAlerts: buildAlerts(),
+      toggleNotif: () => this.setState((st) => ({ notifOpen: !st.notifOpen })),
+      closeNotif: () => this.setState({ notifOpen: false }),
+      goAlert: (view) => this.setView(view),
       theme: this.state.theme,
       icTheme: this.ic(this.state.theme === 'light' ? 'moon' : 'sun', 15),
       themeTitle: this.state.theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode',
@@ -408,8 +416,13 @@ export default class App extends React.Component {
           : { background: 'var(--panel)', border: '1px solid var(--line)', color: 'var(--text)', borderRadius: '13px 13px 13px 4px', padding: '11px 14px', fontSize: '13px', lineHeight: 1.6, maxWidth: '80%', whiteSpace: 'pre-wrap' },
       }
     })
+    const claudeLive = this.state.intApiAvailable && this.state.intStatus && this.state.intStatus.claude && this.state.intStatus.claude.connected
     return {
       chatMsgs: msgs, chatBusy: this.state.chatBusy, icSparkleSm: this.ic('sparkle', 15, '#e8927c'), icSend: this.ic('send', 16),
+      claudeLive: !!claudeLive,
+      backendNote: claudeLive ? '' : this.state.intApiAvailable
+        ? 'Built-in responder active — add ANTHROPIC_API_KEY in Vercel for real Claude replies.'
+        : 'Built-in responder active (no backend in this preview).',
       ai: this.state.ai, aiPct: Math.round((this.state.ai.progress || 0) * 100), aiLabel: MODEL_LABEL, aiSize: MODEL_APPROX_SIZE, aiEnable: () => this.enableLocalAI(),
       chatSuggest: [
         { text: 'Who has the most hours?', onClick: () => this.sendChat('Who has the most hours?') },
@@ -457,11 +470,11 @@ export default class App extends React.Component {
       let toggleLabel, onToggle, toggleStyle, statusText, actionLabel, onAction
       if (live && !configured) {
         toggleLabel = 'Set up'
-        onToggle = () => this.toast(d.name + ' — add its API credentials in Vercel (see docs/integrations-setup.md)')
-        toggleStyle = Object.assign({}, btnBase, { background: 'transparent', color: 'var(--faint)', border: '1px solid var(--line)', cursor: 'pointer' })
+        onToggle = () => this.setState({ setupFor: provider })
+        toggleStyle = Object.assign({}, btnBase, { background: 'var(--blue)', color: '#fff', border: '1px solid transparent' })
         statusText = 'Not configured'
         actionLabel = 'Setup guide'
-        onAction = () => this.toast('See docs/integrations-setup.md for ' + d.name)
+        onAction = () => this.setState({ setupFor: provider })
       } else if (on && live && provider === 'claude') {
         // Claude is API-key based (ANTHROPIC_API_KEY) — there's no per-browser
         // OAuth session to disconnect; show it as active instead of a fake button.
@@ -513,6 +526,28 @@ export default class App extends React.Component {
       // No sync telemetry is tracked yet — show em-dashes in live mode rather
       // than fabricated counts; the demo workspace keeps its sample figures.
       intRecords: live ? '—' : '1,284', intLastSync: live ? '—' : '2m',
+      setupInfo: this.setupInfo(),
+      closeSetup: () => this.setState({ setupFor: null }),
+    }
+  }
+
+  // Copy-paste setup guide for a provider that has no credentials configured.
+  setupInfo() {
+    const p = this.state.setupFor
+    if (!p) return null
+    const origin = (typeof window !== 'undefined' && window.location.origin) || 'https://makaos.vercel.app'
+    const defs = {
+      google: { name: 'Google (Sheets · Drive · Calendar · Gmail)', console: 'console.cloud.google.com → APIs & Services → Credentials (OAuth client, Web)', envs: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'SESSION_SECRET'], oauth: true },
+      slack: { name: 'Slack', console: 'api.slack.com/apps → OAuth & Permissions (scopes: chat:write, chat:write.public, channels:read)', envs: ['SLACK_CLIENT_ID', 'SLACK_CLIENT_SECRET', 'SESSION_SECRET'], oauth: true },
+      quickbooks: { name: 'QuickBooks Online', console: 'developer.intuit.com → your app → Keys & OAuth', envs: ['QBO_CLIENT_ID', 'QBO_CLIENT_SECRET', 'SESSION_SECRET'], oauth: true },
+      claude: { name: 'Claude', console: 'console.anthropic.com → API keys', envs: ['ANTHROPIC_API_KEY'], oauth: false },
+    }
+    const d = defs[p]
+    if (!d) return null
+    return {
+      provider: p, name: d.name, consoleHint: d.console, envs: d.envs,
+      redirect: d.oauth ? origin + '/api/oauth/' + p + '/callback' : null,
+      steps: 'Add the variables in Vercel → Project → Settings → Environment Variables, redeploy, then come back and hit Connect. Full guide: docs/integrations-setup.md in the repo.',
     }
   }
 
