@@ -12,14 +12,16 @@ export default function AssistantScreen({ v }) {
         <div style={css('width:34px;height:34px;border-radius:9px;background:rgba(217,119,87,.18);border:1px solid rgba(217,119,87,.45);display:grid;place-items:center;color:#e8927c;flex-shrink:0')}>{v.icSparkleSm}</div>
         <div style={css('flex:1;min-width:0')}>
           <div style={css('font-size:13.5px;font-weight:700')}>Claude · Maka Painters copilot</div>
-          <div style={css('font-size:11px;color:var(--faint)')}>Reads your real payroll — Darwin + Mauricio, hours, wages, crew</div>
+          <div style={css('font-size:11px;color:var(--faint)')}>{v.backendNote || 'Reads your real payroll — Darwin + Mauricio, hours, wages, crew'}</div>
         </div>
         {v.ai.status === 'ready' ? (
           <Pill led="ok" tone="paper">ON-DEVICE · {v.aiLabel}</Pill>
         ) : v.ai.status === 'loading' ? (
           <Pill led="warn" tone="pending">LOADING {v.aiPct}%</Pill>
+        ) : v.claudeLive ? (
+          <Pill led="ok" tone="paper">CLAUDE API</Pill>
         ) : (
-          <Pill led="ok" tone="paper">CONNECTED</Pill>
+          <Pill led="warn" tone="pending">BUILT-IN RESPONDER</Pill>
         )}
       </div>
       <div ref={v.chatScrollRef} style={css('flex:1;overflow:auto;padding:20px 18px;display:flex;flex-direction:column;gap:14px')}>
