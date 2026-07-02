@@ -32,14 +32,14 @@ npm run format       # Prettier (writes src/)
 ## What's inside
 
 Everything runs on the **real merged payroll** — Darwin and Mauricio are partners
-in one company (Mac Painters) who share/borrow painters, so their two books are
+in one company (Maka Painters) who share/borrow painters, so their two books are
 merged into one de-duplicated roster. No demo data.
 
 | Area | Screens / features |
 | --- | --- |
 | **Dashboard** | Real KPIs (active painters, hours, wages vs. contract billing, entries), top painters by hours, a Darwin-vs-Mauricio split, and recent activity |
 | **Schedule** | A work timeline — weekly hours heatmap per painter, team-coloured (Darwin / Mauricio / both), darker = more hours |
-| **Mac Painters** | The merged roster: a Team toggle (Both / Darwin / Mauricio) + date range, est. wages, name-variant `aka` lines, and a click-through drawer with each painter's daily log |
+| **Maka Painters** | The merged roster: a Team toggle (Both / Darwin / Mauricio) + date range, est. wages, name-variant `aka` lines, and a click-through drawer with each painter's daily log |
 | **Payroll** | Pick a team + pay period: est. gross, additions, deductions and net per painter, with wages vs. contract-billing split and CSV export |
 | **Time logs** | Every recorded entry (date, painter, team, location, hours, base/additions/deductions/net, notes), filterable by team / date / search, with CSV export |
 | **Integrations** | Connect/disconnect Google Sheets, Drive, Calendar, Gmail, Claude, QuickBooks, Slack |
@@ -76,9 +76,9 @@ design/                  The original Claude Design artifacts, kept for provenan
                            Maka OS.dc.html          — the design-component source
 ```
 
-## Mac Painters — real payroll import
+## Maka Painters — real payroll import
 
-`Mac Painters` (in the sidebar) is built from the two real company payroll
+`Maka Painters` (in the sidebar) is built from the two real company payroll
 spreadsheets — **Darwin** and **Mauricio** are partners in the same company, so
 their books are merged into one roster:
 
@@ -103,7 +103,7 @@ their books are merged into one roster:
   their full daily log for the current team + window.
 - **Wages vs. contract billing.** Subcontractors log whole-job values (Point
   Hope, Daniel Island, …) under their row, which dwarfs hourly wages — so the
-  Payroll and Mac Painters KPIs **split** them: *Wages* (hourly/per-day/fixed
+  Payroll and Maka Painters KPIs **split** them: *Wages* (hourly/per-day/fixed
   crew) vs *Contract billing* (subcontractor job totals), with an All / Wages /
   Contract filter.
 - **Everywhere it's wired.** The same data drives the **Payroll** screen, the

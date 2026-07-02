@@ -11,7 +11,7 @@ export default function AssistantScreen({ v }) {
       <div style={css('display:flex;align-items:center;gap:11px;padding:13px 18px;border-bottom:1px solid var(--line);flex-shrink:0')}>
         <div style={css('width:34px;height:34px;border-radius:9px;background:rgba(217,119,87,.18);border:1px solid rgba(217,119,87,.45);display:grid;place-items:center;color:#e8927c;flex-shrink:0')}>{v.icSparkleSm}</div>
         <div style={css('flex:1;min-width:0')}>
-          <div style={css('font-size:13.5px;font-weight:700')}>Claude · Mac Painters copilot</div>
+          <div style={css('font-size:13.5px;font-weight:700')}>Claude · Maka Painters copilot</div>
           <div style={css('font-size:11px;color:var(--faint)')}>Reads your real payroll — Darwin + Mauricio, hours, wages, crew</div>
         </div>
         {v.ai.status === 'ready' ? (
@@ -87,8 +87,8 @@ export default function AssistantScreen({ v }) {
         </div>
         <div style={css('font-size:10px;color:var(--faint-2);margin-top:8px;text-align:center')}>
           {v.ai.status === 'ready'
-            ? `Answers run on-device (${v.aiLabel}) over your Mac Painters payroll. AI-generated — verify before acting.`
-            : 'Reads your Mac Painters payroll. Responses are AI-generated — verify before acting.'}
+            ? `Answers run on-device (${v.aiLabel}) over your Maka Painters payroll. AI-generated — verify before acting.`
+            : 'Reads your Maka Painters payroll. Responses are AI-generated — verify before acting.'}
         </div>
       </div>
     </div>

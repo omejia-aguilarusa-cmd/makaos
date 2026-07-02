@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { css } from '../lib/css.js'
 import { Badge } from '../ds/index.jsx'
-import { Modal, Field, INPUT, THEAD, TD, BTN_PRIMARY } from '../ui/bits.jsx'
+import { Modal, Field, Th, INPUT, THEAD, TD, BTN_PRIMARY } from '../ui/bits.jsx'
 import { money } from '../lib/macPayroll.js'
 import { useEdits, expenses, addExpense, updateExpense, deleteExpense } from '../lib/edits.js'
 import { projectOptions, keyFromName } from '../lib/projects.js'
@@ -55,13 +55,28 @@ export default function ExpensesScreen({ projectFilter }) {
   const editV = useEdits()
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState(null)
+  const [q, setQ] = useState('')
+  const [cat, setCat] = useState('all')
+  const [st, setSt] = useState('all')
+  const [sort, setSort] = useState('date') // date | amount | title | vendor | project | status
 
   const rows = useMemo(() => {
     void editV
     let r = expenses().slice()
     if (projectFilter) r = r.filter((e) => e.projectKey === projectFilter)
-    return r.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
-  }, [editV, projectFilter])
+    const ql = q.trim().toLowerCase()
+    if (ql) r = r.filter((e) => (e.title + ' ' + (e.vendor || '') + ' ' + (e.projectName || '')).toLowerCase().includes(ql))
+    if (cat !== 'all') r = r.filter((e) => e.category === cat)
+    if (st !== 'all') r = r.filter((e) => (st === 'paid' ? e.status === 'paid' : e.status !== 'paid'))
+    return r.sort((a, b) =>
+      sort === 'amount' ? b.amount - a.amount
+      : sort === 'title' ? a.title.localeCompare(b.title)
+      : sort === 'vendor' ? (a.vendor || '').localeCompare(b.vendor || '')
+      : sort === 'project' ? (a.projectName || '').localeCompare(b.projectName || '')
+      : sort === 'status' ? (a.status || '').localeCompare(b.status || '')
+      : (a.date < b.date ? 1 : a.date > b.date ? -1 : 0),
+    )
+  }, [editV, projectFilter, q, cat, st, sort])
 
   const total = rows.reduce((s, e) => s + e.amount, 0)
   const unpaid = rows.filter((e) => e.status !== 'paid').reduce((s, e) => s + e.amount, 0)
@@ -71,20 +86,31 @@ export default function ExpensesScreen({ projectFilter }) {
       <div style={css('display:flex;gap:18px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-shrink:0')}>
         <div style={css('display:flex;flex-direction:column')}><span style={css('font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:700')}>Total expenses</span><span style={css('font-family:var(--font-mono);font-weight:700')}>{money(total)}</span></div>
         <div style={css('display:flex;flex-direction:column')}><span style={css('font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:700')}>Unpaid</span><span style={css('font-family:var(--font-mono);font-weight:700;color:var(--amber)')}>{money(unpaid)}</span></div>
+        <input placeholder="Search item / vendor / project…" value={q} onChange={(e) => setQ(e.target.value)} style={css('background:var(--input-bg);border:1px solid var(--line);border-radius:7px;padding:6px 10px;font-size:12.5px;color:var(--text);width:200px;outline:none')} />
+        <select value={cat} onChange={(e) => setCat(e.target.value)} style={css('background:var(--input-bg);border:1px solid var(--line);border-radius:7px;padding:6px 8px;font-size:12px;color:var(--text);outline:none')}>
+          <option value="all">All categories</option>
+          {CATS.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select value={st} onChange={(e) => setSt(e.target.value)} style={css('background:var(--input-bg);border:1px solid var(--line);border-radius:7px;padding:6px 8px;font-size:12px;color:var(--text);outline:none')}>
+          <option value="all">All statuses</option>
+          <option value="paid">Paid</option>
+          <option value="unpaid">Unpaid</option>
+        </select>
         <div style={css('flex:1')} />
+        <span style={css('font-size:11px;color:var(--faint);font-family:var(--font-mono)')}>{rows.length} shown</span>
         <button onClick={() => setAdding(true)} style={css(BTN_PRIMARY)}>+ Add expense</button>
       </div>
       <div style={css('flex:1;overflow:auto;padding:16px')}>
         <div style={css('border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)')}>
           <table style={css('width:100%;border-collapse:collapse;font-size:12.5px')}>
             <thead><tr>
-              <th style={css('text-align:left;' + THEAD)}>Item</th>
+              <Th k="title" activeKey={sort} onSort={setSort}>Item</Th>
               <th style={css('text-align:left;' + THEAD)}>Category</th>
-              <th style={css('text-align:left;' + THEAD)}>Vendor</th>
-              <th style={css('text-align:left;' + THEAD)}>Project</th>
-              <th style={css('text-align:left;' + THEAD)}>Date</th>
-              <th style={css('text-align:right;' + THEAD)}>Amount</th>
-              <th style={css('text-align:left;' + THEAD)}>Status</th>
+              <Th k="vendor" activeKey={sort} onSort={setSort}>Vendor</Th>
+              <Th k="project" activeKey={sort} onSort={setSort}>Project</Th>
+              <Th k="date" activeKey={sort} onSort={setSort}>Date</Th>
+              <Th k="amount" num activeKey={sort} onSort={setSort}>Amount</Th>
+              <Th k="status" activeKey={sort} onSort={setSort}>Status</Th>
             </tr></thead>
             <tbody>
               {rows.map((e) => (

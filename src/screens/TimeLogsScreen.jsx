@@ -4,6 +4,7 @@ import { Badge } from '../ds/index.jsx'
 import { filterEntries, employeeById, employeeOptions, siteOptions, money, fmtH, fmtDate, META, TEAM_LABEL, TEAM_COLOR } from '../lib/macPayroll.js'
 import { downloadCSV } from '../lib/csv.js'
 import { useEdits, saveEntryEdit, clearEntryEdit, addEntry, deleteEntry, needsReview } from '../lib/edits.js'
+import { useSheetSync, setSheetSyncEnabled, pullNow } from '../lib/sheetSync.js'
 
 const th = (align = 'left') => `text-align:${align};font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:700;padding:9px 11px;border-bottom:1px solid var(--line);background:var(--panel-2);white-space:nowrap`
 const td = 'padding:8px 11px;border-bottom:1px solid var(--line-soft)'
@@ -50,7 +51,7 @@ export default function TimeLogsScreen() {
   const exportCSV = () => {
     const headers = ['Date', 'Employee', 'Team', 'Location', 'Hours', 'Base', 'Additions', 'Deductions', 'Net', 'Notes', 'Source', 'Needs review']
     const data = entries.map((e) => [e.date, e.name, e.team, e.location, e.hours, e.subtotal, e.addition, e.deduction, e.total, e.notes, e.manual ? 'manual' : 'imported', e.review || ''])
-    downloadCSV(`mac-painters-timelogs_${team}_${from}_${to}.csv`, headers, data)
+    downloadCSV(`maka-painters-timelogs_${team}_${from}_${to}.csv`, headers, data)
   }
 
   const beginEdit = (e) => { setAddDraft(null); setEditId(e._id); setDraft({ hours: e.hours ?? 0, subtotal: e.subtotal ?? 0, addition: e.addition || 0, deduction: e.deduction || 0, location: e.location || '', notes: e.notes || '' }) }
@@ -102,6 +103,7 @@ export default function TimeLogsScreen() {
         <input placeholder="Search name or location…" value={q} onChange={(e) => setQ(e.target.value)} style={css('background:var(--input-bg);border:1px solid var(--line);border-radius:7px;padding:6px 10px;font-size:12.5px;color:var(--text);width:180px;outline:none')} />
         <button onClick={() => setReviewOnly((v) => !v)} title="Show only entries that look off (odd hours, negative net, missing data)"
           style={css('display:inline-flex;align-items:center;gap:5px;border-radius:7px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;' + (reviewOnly ? 'background:var(--amber-soft,rgba(255,172,24,.16));color:var(--amber);border:1px solid var(--amber)' : 'background:var(--panel-2);color:var(--muted);border:1px solid var(--line)'))}>⚠ Needs review{reviewCount ? ' (' + reviewCount + ')' : ''}</button>
+        <SheetSyncChip />
         <div style={css('flex:1')} />
         <span style={css('font-size:11px;color:var(--faint);font-family:var(--font-mono)')}>{entries.length.toLocaleString('en-US')} · {fmtH(totH)}</span>
         <button onClick={openAdd} style={css('display:inline-flex;align-items:center;gap:5px;background:var(--panel-2);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer')}>+ Add time log</button>
@@ -192,5 +194,30 @@ export default function TimeLogsScreen() {
         </div>
       </div>
     </div>
+  )
+}
+
+
+// Google Sheets sync chip — toggles the two-way sync and shows live status.
+function SheetSyncChip() {
+  const sync = useSheetSync()
+  const on = sync.enabled
+  const stateColor = sync.state === 'error' || sync.state === 'disconnected' ? 'var(--red)' : sync.state === 'syncing' ? 'var(--amber)' : on ? 'var(--green)' : 'var(--faint)'
+  const label = !on ? 'Sheets sync: off'
+    : sync.state === 'syncing' ? 'Sheets: syncing…'
+    : sync.state === 'disconnected' ? 'Sheets: connect Google'
+    : sync.state === 'error' ? 'Sheets: error'
+    : 'Sheets ✓' + (sync.lastSyncAt ? ' ' + new Date(sync.lastSyncAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '')
+  return (
+    <span style={css('display:inline-flex;align-items:center;gap:6px')}>
+      <button onClick={() => setSheetSyncEnabled(!on)}
+        title={on ? 'Two-way sync with Google Sheets is ON — edits here push in ~3s; sheet edits pull every 45s. Click to turn off.' + (sync.detail ? ' (' + sync.detail + ')' : '') : 'Turn on two-way sync with a Google Spreadsheet (requires Google connected in Integrations)'}
+        style={css('display:inline-flex;align-items:center;gap:6px;border-radius:7px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;' + (on ? 'background:var(--green-soft);color:var(--green);border:1px solid var(--green-line)' : 'background:var(--panel-2);color:var(--muted);border:1px solid var(--line)'))}>
+        <span style={{ width: 7, height: 7, borderRadius: '50%', background: stateColor, flexShrink: 0 }} />
+        {label}
+      </button>
+      {on && sync.url && <a href={sync.url} target="_blank" rel="noreferrer" title="Open the spreadsheet" style={css('font-size:11.5px;font-weight:700;color:var(--blue-hi);text-decoration:none;border:1px solid var(--line);border-radius:7px;padding:6px 9px')}>Open sheet ↗</a>}
+      {on && sync.state !== 'syncing' && <button onClick={() => pullNow()} title="Pull sheet changes now" style={css('font-size:11.5px;font-weight:700;color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:7px;padding:6px 9px;cursor:pointer')}>⟳</button>}
+    </span>
   )
 }

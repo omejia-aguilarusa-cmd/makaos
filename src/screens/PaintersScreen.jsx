@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { css } from '../lib/css.js'
 import { Badge } from '../ds/index.jsx'
-import { Avatar, avatarStyle, initials, THEAD, TD, Tile, useEscapeClose } from '../ui/bits.jsx'
+import { Avatar, avatarStyle, initials, Th, THEAD, TD, Tile, useEscapeClose } from '../ui/bits.jsx'
 import {
   payroll, employeeEntries, siteKeyOf, money, fmtH, fmtDate, META, TEAM_LABEL,
 } from '../lib/macPayroll.js'
@@ -36,6 +36,7 @@ export default function PaintersScreen({ crewFilter, onOpenProject }) {
   const editV = useEdits()
   const [q, setQ] = useState('')
   const [crew, setCrew] = useState(crewFilter || 'all')
+  const [sort, setSort] = useState('hours') // hours | name | rate | payType | projects
   const [selId, setSelId] = useState(null)
 
   useEffect(() => { setCrew(crewFilter || 'all') }, [crewFilter])
@@ -52,8 +53,14 @@ export default function PaintersScreen({ crewFilter, onOpenProject }) {
     const ql = q.trim().toLowerCase()
     return rows
       .filter((r) => (crew === 'all' || r.crew === crew) && (!ql || r.name.toLowerCase().includes(ql)))
-      .sort((a, b) => b.hours - a.hours)
-  }, [rows, crew, q])
+      .sort((a, b) =>
+        sort === 'name' ? a.name.localeCompare(b.name)
+        : sort === 'rate' ? (b.rate || 0) - (a.rate || 0)
+        : sort === 'payType' ? (a.payType || '').localeCompare(b.payType || '')
+        : sort === 'projects' ? b.projs.length - a.projs.length
+        : b.hours - a.hours,
+      )
+  }, [rows, crew, q, sort])
 
   const sel = selId ? rows.find((r) => r.id === selId) : null
 
@@ -75,9 +82,13 @@ export default function PaintersScreen({ crewFilter, onOpenProject }) {
         <div style={css('border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)')}>
           <table style={css('width:100%;border-collapse:collapse;font-size:12.5px')}>
             <thead><tr>
-              {['Painter', 'Crew', 'Pay type', 'Rate', 'Hours', 'Availability', 'Active projects'].map((h, i) => (
-                <th key={h} style={css(`text-align:${i === 3 || i === 4 ? 'right' : 'left'};${THEAD}`)}>{h}</th>
-              ))}
+              <Th k="name" activeKey={sort} onSort={setSort}>Painter</Th>
+              <th style={css('text-align:left;' + THEAD)}>Crew</th>
+              <Th k="payType" activeKey={sort} onSort={setSort}>Pay type</Th>
+              <Th k="rate" num activeKey={sort} onSort={setSort}>Rate</Th>
+              <Th k="hours" num activeKey={sort} onSort={setSort}>Hours</Th>
+              <th style={css('text-align:left;' + THEAD)}>Availability</th>
+              <Th k="projects" activeKey={sort} onSort={setSort}>Active projects</Th>
             </tr></thead>
             <tbody>
               {filtered.map((r) => (

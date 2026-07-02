@@ -10,7 +10,7 @@ import React from 'react'
  */
 export function Badge({ color = 'default', children, style, ...rest }) {
   const colors = {
-    default: { bg: '#172033', color: 'var(--muted)' },
+    default: { bg: 'var(--panel-3)', color: 'var(--muted)' },
     green: { bg: 'var(--green-soft)', color: 'var(--green)' },
     blue: { bg: 'var(--blue-soft)', color: 'var(--blue)' },
     cyan: { bg: 'var(--cyan-soft)', color: 'var(--cyan)' },
@@ -73,7 +73,7 @@ export function Button({
     fontWeight: 'var(--fw-bold)',
     borderRadius: 'var(--r-md)',
     border: '1px solid var(--line)',
-    background: '#101827',
+    background: 'var(--panel-2)',
     color: 'var(--muted)',
     cursor: disabled ? 'not-allowed' : 'pointer',
     opacity: disabled ? 0.45 : 1,

@@ -1,4 +1,4 @@
-// Shared aggregation for the imported Mac Painters payroll. Both the Mac
+// Shared aggregation for the imported Maka Painters payroll. Both the Mac
 // Painters roster screen and the Payroll screen compute from this, so a team +
 // date-range selection produces the same accurate numbers everywhere.
 import { MAC_PAINTERS } from './macPainters.js'

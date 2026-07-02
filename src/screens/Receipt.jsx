@@ -29,7 +29,7 @@ function Sheet({ id, team, from, to, preparedOn }) {
       {/* header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', borderBottom: `2px solid ${INK}`, paddingBottom: '14px' }}>
         <div>
-          <div style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '.02em' }}>Mac Painters</div>
+          <div style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '.02em' }}>Maka Painters</div>
           <div style={{ fontSize: '12px', color: MUTE, marginTop: '2px' }}>Payroll Receipt</div>
         </div>
         <div style={{ textAlign: 'right', fontSize: '11.5px', color: MUTE, lineHeight: 1.6 }}>

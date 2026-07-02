@@ -76,3 +76,51 @@
   --warn:           var(--amber);   /* caution        */
   --info:           var(--cyan);    /* informational  */
 }
+
+/* ===========================================================================
+   Light theme — applied when <html data-theme="light">. Same accent hues,
+   inverted surfaces. Every component reads tokens, so this flips the app.
+   =========================================================================== */
+[data-theme="light"] {
+  --bg:        #eef1f6;
+  --nav:       #f5f7fb;
+  --surface:   #f2f4f9;
+  --topbar:    #f8fafd;
+  --panel:     #ffffff;
+  --panel-2:   #f1f4f9;
+  --panel-3:   #e7edf6;
+  --inset:     #eef2f8;
+  --input-bg:  #ffffff;
+
+  --line:      #d3dcea;
+  --line-soft: #e4e9f2;
+  --line-strong:#a7bad9;
+
+  --text:      #16202e;
+  --muted:     #46586f;
+  --faint:     #7a8aa1;
+  --faint-2:   #93a1b6;
+
+  --blue:      #1f6ff2;
+  --blue-hi:   #1a5fd6;
+  --cyan:      #0899b8;
+  --green:     #0f9d4f;
+  --red:       #dc3545;
+  --amber:     #b97708;
+  --purple:    #8b3fe0;
+
+  --green-soft:  rgba(15,157,79,.12);
+  --green-line:  rgba(15,157,79,.45);
+  --red-soft:    rgba(220,53,69,.10);
+  --red-line:    rgba(220,53,69,.45);
+  --amber-soft:  rgba(185,119,8,.12);
+  --amber-line:  rgba(185,119,8,.5);
+  --blue-soft:   rgba(31,111,242,.10);
+  --cyan-soft:   rgba(8,153,184,.10);
+  --cyan-line:   rgba(8,153,184,.35);
+  --purple-soft: rgba(139,63,224,.10);
+
+  --focus-ring:  rgba(31,111,242,.18);
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(70,88,111,.28); background-clip: padding-box; }
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: rgba(70,88,111,.45); background-clip: padding-box; }

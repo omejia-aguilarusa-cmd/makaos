@@ -4,7 +4,7 @@ import { Box } from '../ui/Box.jsx'
 import { StatCard, Badge } from '../ds/index.jsx'
 import { payroll, filterEntries, employeeById, money, fmtH, fmtDate, META, TEAM_LABEL, TEAM_COLOR } from '../lib/macPayroll.js'
 
-// Real dashboard for Mac Painters — a live summary of the merged Darwin +
+// Real dashboard for Maka Painters — a live summary of the merged Darwin +
 // Mauricio payroll. No demo data.
 export default function DashboardScreen({ onGo }) {
   const all = useMemo(() => payroll('both', META.dateMin, META.dateMax, {}), [])

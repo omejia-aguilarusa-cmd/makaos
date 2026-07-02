@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { css } from '../lib/css.js'
 import { Badge } from '../ds/index.jsx'
-import { Modal, Field, INPUT, THEAD, TD, BTN_PRIMARY } from '../ui/bits.jsx'
+import { Modal, Field, Th, INPUT, THEAD, TD, BTN_PRIMARY } from '../ui/bits.jsx'
 import { money } from '../lib/macPayroll.js'
 import { useEdits, changeOrders, addChangeOrder, updateChangeOrder, deleteChangeOrder } from '../lib/edits.js'
 import { projectOptions, keyFromName } from '../lib/projects.js'
@@ -66,13 +66,26 @@ export default function ChangeOrdersScreen({ projectFilter }) {
   const editV = useEdits()
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState(null)
+  const [q, setQ] = useState('')
+  const [st, setSt] = useState('all')
+  const [sort, setSort] = useState('date') // date | amount | profit | title | project | status
 
   const rows = useMemo(() => {
     void editV
     let r = changeOrders().slice()
     if (projectFilter) r = r.filter((c) => c.projectKey === projectFilter)
-    return r.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
-  }, [editV, projectFilter])
+    const ql = q.trim().toLowerCase()
+    if (ql) r = r.filter((c) => (c.title + ' ' + (c.desc || '') + ' ' + (c.projectName || '') + ' ' + (c.requestedBy || '')).toLowerCase().includes(ql))
+    if (st !== 'all') r = r.filter((c) => c.status === st)
+    return r.sort((a, b) =>
+      sort === 'amount' ? b.amount - a.amount
+      : sort === 'profit' ? (b.amount - b.cost) - (a.amount - a.cost)
+      : sort === 'title' ? a.title.localeCompare(b.title)
+      : sort === 'project' ? (a.projectName || '').localeCompare(b.projectName || '')
+      : sort === 'status' ? (a.status || '').localeCompare(b.status || '')
+      : (a.date < b.date ? 1 : a.date > b.date ? -1 : 0),
+    )
+  }, [editV, projectFilter, q, st, sort])
 
   const approved = rows.filter((c) => c.status === 'approved').reduce((s, c) => s + c.amount, 0)
   const pending = rows.filter((c) => c.status === 'pending').reduce((s, c) => s + c.amount, 0)
@@ -82,19 +95,27 @@ export default function ChangeOrdersScreen({ projectFilter }) {
       <div style={css('display:flex;gap:18px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-shrink:0')}>
         <div style={css('display:flex;flex-direction:column')}><span style={css('font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:700')}>Approved</span><span style={css('font-family:var(--font-mono);font-weight:700;color:var(--green)')}>{money(approved)}</span></div>
         <div style={css('display:flex;flex-direction:column')}><span style={css('font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:700')}>Pending</span><span style={css('font-family:var(--font-mono);font-weight:700;color:var(--amber)')}>{money(pending)}</span></div>
+        <input placeholder="Search title / project / requester…" value={q} onChange={(e) => setQ(e.target.value)} style={css('background:var(--input-bg);border:1px solid var(--line);border-radius:7px;padding:6px 10px;font-size:12.5px;color:var(--text);width:210px;outline:none')} />
+        <select value={st} onChange={(e) => setSt(e.target.value)} style={css('background:var(--input-bg);border:1px solid var(--line);border-radius:7px;padding:6px 8px;font-size:12px;color:var(--text);outline:none')}>
+          <option value="all">All statuses</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+        </select>
         <div style={css('flex:1')} />
+        <span style={css('font-size:11px;color:var(--faint);font-family:var(--font-mono)')}>{rows.length} shown</span>
         <button onClick={() => setAdding(true)} style={css(BTN_PRIMARY)}>+ New change order</button>
       </div>
       <div style={css('flex:1;overflow:auto;padding:16px')}>
         <div style={css('border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)')}>
           <table style={css('width:100%;border-collapse:collapse;font-size:12.5px')}>
             <thead><tr>
-              <th style={css('text-align:left;' + THEAD)}>Change order</th>
-              <th style={css('text-align:left;' + THEAD)}>Project</th>
+              <Th k="title" activeKey={sort} onSort={setSort}>Change order</Th>
+              <Th k="project" activeKey={sort} onSort={setSort}>Project</Th>
               <th style={css('text-align:left;' + THEAD)}>Requested by</th>
-              <th style={css('text-align:right;' + THEAD)}>Amount</th>
-              <th style={css('text-align:right;' + THEAD)}>Profit</th>
-              <th style={css('text-align:left;' + THEAD)}>Status</th>
+              <Th k="amount" num activeKey={sort} onSort={setSort}>Amount</Th>
+              <Th k="profit" num activeKey={sort} onSort={setSort}>Profit</Th>
+              <Th k="status" activeKey={sort} onSort={setSort}>Status</Th>
             </tr></thead>
             <tbody>
               {rows.map((c) => (
