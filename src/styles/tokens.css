@@ -81,7 +81,7 @@
    Light theme — applied when <html data-theme="light">. Same accent hues,
    inverted surfaces. Every component reads tokens, so this flips the app.
    =========================================================================== */
-[data-theme="light"] {
+:root[data-theme="light"] {
   --bg:        #eef1f6;
   --nav:       #f5f7fb;
   --surface:   #f2f4f9;
@@ -122,5 +122,5 @@
 
   --focus-ring:  rgba(31,111,242,.18);
 }
-[data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(70,88,111,.28); background-clip: padding-box; }
-[data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: rgba(70,88,111,.45); background-clip: padding-box; }
+:root[data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(70,88,111,.28); background-clip: padding-box; }
+:root[data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: rgba(70,88,111,.45); background-clip: padding-box; }

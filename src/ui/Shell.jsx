@@ -99,7 +99,33 @@ export function Topbar({ v }) {
         <span style={css('display:inline-flex')}>{v.icSparkle}</span> Ask Claude
       </Box>
       <Box as="button" onClick={v.onToggleTheme} title={v.themeTitle} aria-label={v.themeTitle} style={css('width:30px;height:30px;border-radius:7px;display:grid;place-items:center;background:transparent;border:1px solid var(--line);cursor:pointer;color:var(--muted)')} hover="background:var(--panel-2);color:var(--text)">{v.icTheme}</Box>
-      <Box as="button" title="Notifications" style={css('width:30px;height:30px;border-radius:7px;display:grid;place-items:center;background:transparent;border:1px solid transparent;cursor:pointer;color:var(--muted)')} hover="background:var(--panel-2);color:var(--text)">{v.icInbox}</Box>
+      <span style={css('position:relative;display:inline-flex')}>
+        <Box as="button" onClick={v.toggleNotif} title="Notifications" aria-label="Notifications" style={css('width:30px;height:30px;border-radius:7px;display:grid;place-items:center;background:transparent;border:1px solid ' + (v.notifOpen ? 'var(--line-strong)' : 'transparent') + ';cursor:pointer;color:var(--muted);position:relative')} hover="background:var(--panel-2);color:var(--text)">
+          {v.icInbox}
+        </Box>
+        {v.notifAlerts.length > 0 && (
+          <span style={css('position:absolute;top:2px;right:2px;min-width:14px;height:14px;border-radius:999px;background:var(--red);color:#fff;font-size:9px;font-weight:800;display:grid;place-items:center;padding:0 3px;pointer-events:none')}>{v.notifAlerts.length}</span>
+        )}
+        {v.notifOpen && (
+          <>
+            <div onClick={v.closeNotif} aria-hidden="true" style={css('position:fixed;inset:0;z-index:115')} />
+            <div role="dialog" aria-label="Notifications" style={css('position:absolute;top:36px;right:0;width:330px;max-height:420px;overflow:auto;background:var(--panel);border:1px solid var(--line-strong);border-radius:11px;box-shadow:0 20px 54px rgba(0,0,0,.45);z-index:120;padding:6px')}>
+              <div style={css('font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);padding:8px 10px 6px')}>Notifications</div>
+              {v.notifAlerts.map((a) => (
+                <Box key={a.id} onClick={() => { v.closeNotif(); v.goAlert(a.view) }} style={css('display:flex;gap:9px;align-items:flex-start;padding:9px 10px;border-radius:8px;cursor:pointer')} hover="background:var(--panel-2)">
+                  <span style={css('width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0;background:var(--' + (a.tone || 'blue') + ')')} />
+                  <span style={css('flex:1;min-width:0')}>
+                    <span style={css('display:block;font-size:12.5px;font-weight:600;color:var(--text)')}>{a.text}</span>
+                    <span style={css('display:block;font-size:11px;color:var(--faint)')}>{a.sub}</span>
+                  </span>
+                  <span style={css('font-size:11px;color:var(--faint-2);margin-top:2px')}>→</span>
+                </Box>
+              ))}
+              {v.notifAlerts.length === 0 && <div style={css('padding:16px 10px;text-align:center;color:var(--faint);font-size:12px')}>All clear — nothing needs attention.</div>}
+            </div>
+          </>
+        )}
+      </span>
     </header>
   )
 }
