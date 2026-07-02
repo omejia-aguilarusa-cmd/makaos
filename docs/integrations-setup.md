@@ -60,3 +60,19 @@ Use your production base (or add the Vercel preview URL too). Path is always
 - Rotate any secret that has ever been pasted into a chat or commit.
 - The session cookie has a ~4KB browser limit; connecting several providers at
   once with large tokens can approach it. Connect what you use.
+
+## Google Sheets two-way sync (Time Logs)
+
+Once Google is connected, toggle **Sheets sync** on the Time Logs page. Maka OS
+creates a spreadsheet, **"Maka OS — Time Logs"** (tab `TimeLogs`), in your
+Drive and keeps it in near-real-time sync both ways:
+
+- **Portal → sheet:** any time-log change (edit, add, delete) pushes ~3 s later.
+- **Sheet → portal:** the portal polls every 45 s. Edits to *Hours, Base,
+  Addition, Deduction, Location, Notes* on existing rows are applied by row ID;
+  brand-new rows typed into the sheet become manual entries when they carry a
+  valid `Date` (YYYY-MM-DD, inside the data window) and a known `EmployeeID`
+  or exact `Employee` name. IDs are written back automatically.
+- Do not edit the `ID` column — it's how rows are matched.
+- Conflict rule: the last writer wins (portal pushes are debounced 3 s; the
+  sheet is polled every 45 s).

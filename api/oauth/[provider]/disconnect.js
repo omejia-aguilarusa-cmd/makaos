@@ -4,6 +4,7 @@ import { json } from '../../_lib/http.js'
 
 // Drop a provider's tokens from the session (idempotent).
 export default function handler(req, res) {
+  if (req.method !== 'POST') return json(res, 405, { error: 'POST only' })
   const provider = req.query.provider
   if (!isProvider(provider)) return json(res, 400, { error: 'unknown_provider' })
   const sess = readSession(req)

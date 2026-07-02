@@ -17,17 +17,38 @@ const pin = (
 export default function AddressesScreen({ onOpenProject }) {
   const editV = useEdits()
   const [q, setQ] = useState('')
+  const [st, setSt] = useState('all')
+  const [sort, setSort] = useState('recent') // recent | hours | painters | name | revenue
   const rows = useMemo(() => {
     void editV
-    return projectList('both', META.dateMin, META.dateMax, { q }).rows
-      .filter((p) => p.hours > 0)
-      .sort((a, b) => (a.last < b.last ? 1 : a.last > b.last ? -1 : 0))
-  }, [editV, q])
+    let r = projectList('both', META.dateMin, META.dateMax, { q, status: st }).rows.filter((p) => p.hours > 0)
+    r.sort((a, b) =>
+      sort === 'hours' ? b.hours - a.hours
+      : sort === 'painters' ? b.painters - a.painters
+      : sort === 'name' ? a.address.localeCompare(b.address)
+      : sort === 'revenue' ? (b.revenue || b.laborCost) - (a.revenue || a.laborCost)
+      : (a.last < b.last ? 1 : a.last > b.last ? -1 : 0),
+    )
+    return r
+  }, [editV, q, st, sort])
 
   return (
     <div style={css('height:100%;display:flex;flex-direction:column;min-height:0')}>
       <div style={css('display:flex;gap:10px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-shrink:0')}>
-        <input placeholder="Search addresses…" value={q} onChange={(e) => setQ(e.target.value)} style={css('background:var(--input-bg);border:1px solid var(--line);border-radius:7px;padding:6px 10px;font-size:12.5px;color:var(--text);width:260px;outline:none')} />
+        <input placeholder="Search addresses…" value={q} onChange={(e) => setQ(e.target.value)} style={css('background:var(--input-bg);border:1px solid var(--line);border-radius:7px;padding:6px 10px;font-size:12.5px;color:var(--text);width:240px;outline:none')} />
+        <select value={st} onChange={(e) => setSt(e.target.value)} style={css('background:var(--input-bg);border:1px solid var(--line);border-radius:7px;padding:6px 8px;font-size:12px;color:var(--text);outline:none')}>
+          <option value="all">All statuses</option>
+          <option value="active">In progress</option>
+          <option value="done">Completed</option>
+          <option value="hold">On hold</option>
+        </select>
+        <select value={sort} onChange={(e) => setSort(e.target.value)} style={css('background:var(--input-bg);border:1px solid var(--line);border-radius:7px;padding:6px 8px;font-size:12px;color:var(--text);outline:none')}>
+          <option value="recent">Sort: most recent</option>
+          <option value="hours">Sort: hours</option>
+          <option value="painters">Sort: painters</option>
+          <option value="revenue">Sort: value</option>
+          <option value="name">Sort: address</option>
+        </select>
         <span style={css('font-size:12px;color:var(--faint);font-family:var(--font-mono)')}>{rows.length} sites</span>
       </div>
       <div style={css('flex:1;overflow:auto;padding:16px')}>

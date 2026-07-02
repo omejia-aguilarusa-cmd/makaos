@@ -28,7 +28,7 @@ export function Sidebar({ v }) {
         <div style={css('width:31px;height:31px;border-radius:9px;background:var(--grad-logo);display:grid;place-items:center;color:#fff;font-weight:800;font-size:16px;letter-spacing:-.04em;box-shadow:inset 0 -1px 0 rgba(0,0,0,.3),0 2px 7px rgba(19,135,255,.35)')}>M</div>
         <div style={css('line-height:1.15')}>
           <div style={css('font-size:14px;font-weight:800;letter-spacing:-.01em')}>Maka OS</div>
-          <div style={css('font-size:10.5px;color:var(--faint);letter-spacing:.03em')}>Mac Painters</div>
+          <div style={css('font-size:10.5px;color:var(--faint);letter-spacing:.03em')}>Maka Painters</div>
         </div>
       </div>
 
@@ -98,6 +98,7 @@ export function Topbar({ v }) {
       <Box as="button" onClick={v.openAssistant} style={css('display:inline-flex;align-items:center;gap:7px;background:var(--blue);border:1px solid transparent;border-radius:7px;padding:6px 12px;font-size:12.5px;font-weight:700;color:#fff;cursor:pointer;box-shadow:0 2px 10px rgba(47,130,255,.35)')} hover="filter:brightness(1.08)">
         <span style={css('display:inline-flex')}>{v.icSparkle}</span> Ask Claude
       </Box>
+      <Box as="button" onClick={v.onToggleTheme} title={v.themeTitle} aria-label={v.themeTitle} style={css('width:30px;height:30px;border-radius:7px;display:grid;place-items:center;background:transparent;border:1px solid var(--line);cursor:pointer;color:var(--muted)')} hover="background:var(--panel-2);color:var(--text)">{v.icTheme}</Box>
       <Box as="button" title="Notifications" style={css('width:30px;height:30px;border-radius:7px;display:grid;place-items:center;background:transparent;border:1px solid transparent;cursor:pointer;color:var(--muted)')} hover="background:var(--panel-2);color:var(--text)">{v.icInbox}</Box>
     </header>
   )

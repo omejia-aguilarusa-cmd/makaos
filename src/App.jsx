@@ -19,13 +19,15 @@ import { payroll, money, META, siteCount } from './lib/macPayroll.js'
 import { subscribeEdits, changeOrders, expenses } from './lib/edits.js'
 import { CREWS, crewFor, projectList } from './lib/projects.js'
 import Spotlight from './overlays/Spotlight.jsx'
+import { startSheetSync } from './lib/sheetSync.js'
+import { setEscSuppressor } from './ui/bits.jsx'
 
 // Maka OS — operations console for a commercial painting contractor.
 //
 // The controller holds app state (current view, integration connections, the
 // copilot chat, the on-device AI engine) and builds the view-models the shell,
 // spotlight, integrations and assistant screens render. The data-heavy screens
-// (Dashboard, Schedule, Mac Painters, Payroll, Time Logs) read the real merged
+// (Dashboard, Schedule, Maka Painters, Payroll, Time Logs) read the real merged
 // payroll directly from src/lib/macPayroll.js and manage their own local state.
 
 export default class App extends React.Component {
@@ -37,8 +39,9 @@ export default class App extends React.Component {
     const s = this.load()
     this.state = {
       view: s.view || (props.defaultView || 'home'),
+      theme: s.theme === 'light' ? 'light' : 'dark',
       connections: s.connections || { sheets: true, drive: true, calendar: false, gmail: false, claude: true, quickbooks: false, slack: false },
-      chat: s.chat || [{ role: 'assistant', text: "I'm your Mac Painters copilot. Ask me about hours, wages, who's shared between Darwin and Mauricio, or any painter on the crew." }],
+      chat: s.chat || [{ role: 'assistant', text: "I'm your Maka Painters copilot. Ask me about hours, wages, who's shared between Darwin and Mauricio, or any painter on the crew." }],
       spotlight: false,
       projSel: null,   // project key to auto-open in the Projects drawer
       crewFilter: null, // crew id to pre-filter the Painters roster
@@ -55,15 +58,37 @@ export default class App extends React.Component {
   persist() {
     try {
       localStorage.setItem(this.KEY, JSON.stringify({
-        view: this.state.view, connections: this.state.connections, chat: this.state.chat,
+        view: this.state.view, theme: this.state.theme, connections: this.state.connections, chat: this.state.chat,
       }))
     } catch (e) {}
   }
   componentDidUpdate() { this.persist(); if (this._chatScroll) this._chatScroll.scrollTop = this._chatScroll.scrollHeight }
+  // Apply the theme to <html>. In light mode the CSS token block owns the
+  // accent (an inline --blue would override it), so inline props are cleared.
+  applyTheme(theme) {
+    const root = document.documentElement
+    root.setAttribute('data-theme', theme)
+    if (theme === 'light') {
+      root.style.removeProperty('--accent')
+      root.style.removeProperty('--blue')
+    } else {
+      const accent = this.props.accent || '#2f82ff'
+      root.style.setProperty('--accent', accent)
+      root.style.setProperty('--blue', accent)
+    }
+  }
+  toggleTheme() {
+    const theme = this.state.theme === 'light' ? 'dark' : 'light'
+    this.setState({ theme })
+    this.applyTheme(theme)
+    this.toast(theme === 'light' ? 'Light mode' : 'Dark mode')
+  }
+
   componentDidMount() {
-    const accent = this.props.accent || '#2f82ff'
-    document.documentElement.style.setProperty('--accent', accent)
-    document.documentElement.style.setProperty('--blue', accent)
+    this.applyTheme(this.state.theme)
+    // While Spotlight is open, Escape belongs to it — drawers/modals underneath
+    // (the bits.jsx escape stack) must not also close on the same keypress.
+    setEscSuppressor(() => this.state.spotlight)
     this._key = (e) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); this.setState({ spotlight: true }) }
       if (e.key === 'Escape') this.setState({ spotlight: false })
@@ -75,6 +100,8 @@ export default class App extends React.Component {
     // then load live integration status from the serverless backend.
     this.handleOAuthReturn()
     this.refreshIntegrations()
+    // Two-way Google Sheets sync engine (no-op until enabled on Time Logs).
+    startSheetSync()
   }
 
   // ---------- integrations backend ----------
@@ -154,6 +181,8 @@ export default class App extends React.Component {
       chart: [['path', { d: 'M4 20V4' }], ['path', { d: 'M4 20h16' }], ['path', { d: 'M8 16v-4M12 16V9M16 16v-7' }]],
       doc: [['path', { d: 'M6 3h8l4 4v14H6z' }], ['path', { d: 'M14 3v4h4' }], ['path', { d: 'M9 12h6M9 15.5h6' }]],
       receipt: [['path', { d: 'M6 3h12v18l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4L6 21z' }], ['path', { d: 'M9.5 8h5M9.5 11.5h5' }]],
+      sun: [['circle', { cx: 12, cy: 12, r: 4.2 }], ['path', { d: 'M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2.1 2.1M16.9 16.9L19 19M19 5l-2.1 2.1M7.1 16.9L5 19' }]],
+      moon: [['path', { d: 'M20 13.5A8 8 0 0 1 10.5 4 8 8 0 1 0 20 13.5z' }]],
     }
     const p = defs[name] || [['circle', { cx: 12, cy: 12, r: 6 }]]
     return React.createElement(
@@ -226,11 +255,15 @@ export default class App extends React.Component {
         Object.assign(this.navItem('integrations', 'Integrations', 'plug'), { hasDot: connectedCount > 0 }),
         Object.assign(this.navItem('assistant', 'Assistant', 'sparkle'), { hasDot: !!conns.claude }),
       ],
-      crumb: { label: labels[v] || 'Mac Painters', sub: subs[v] || '' },
+      crumb: { label: labels[v] || 'Maka Painters', sub: subs[v] || '' },
       isHome: v === 'home', isSchedule: v === 'schedule', isProjects: v === 'projects', isPainters: v === 'painters', isPayroll: v === 'payroll', isReports: v === 'reports', isChangeOrders: v === 'change-orders', isExpenses: v === 'expenses', isTimeLogs: v === 'time-logs', isAddresses: v === 'addresses', isIntegrations: v === 'integrations', isAssistant: v === 'assistant',
       connectedCount, syncSummary: MAC_PAINTERS.meta.employeeCount + ' painters · ' + MAC_PAINTERS.meta.entryCount.toLocaleString('en-US') + ' entries', syncTime: 'imported',
       icSearch: this.ic('search', 14), icGrid: this.ic('grid', 14), icSparkle: this.ic('sparkle', 14), icInbox: this.ic('inbox', 16), icActivity: this.ic('activity', 14), icPin: this.ic('pin', 16), icGridBig: this.ic('grid', 20), icClose: this.ic('close', 15),
       openSpotlight: () => this.setState({ spotlight: true }),
+      theme: this.state.theme,
+      icTheme: this.ic(this.state.theme === 'light' ? 'moon' : 'sun', 15),
+      themeTitle: this.state.theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode',
+      onToggleTheme: () => this.toggleTheme(),
       openAssistant: () => this.setView('assistant'),
       goIntegrations: () => this.setView('integrations'),
       toast: this.state.toast,
@@ -261,7 +294,7 @@ export default class App extends React.Component {
     const mau = payroll('mauricio', META.dateMin, META.dateMax, {})
     const top = [...a.rows].sort((x, y) => y.hours - x.hours).slice(0, 10)
     const L = []
-    L.push('You are the Mac Painters operations copilot. Mac Painters is ONE painting company run by two partners — Darwin and Mauricio — who share and borrow painters across jobs. Answer ONLY from the data below, concise and operator-to-operator, with specific hours and $. No markdown headers.')
+    L.push('You are the Maka Painters operations copilot. Maka Painters is ONE painting company run by two partners — Darwin and Mauricio — who share and borrow painters across jobs. Answer ONLY from the data below, concise and operator-to-operator, with specific hours and $. No markdown headers.')
     L.push('PERIOD: ' + META.dateMin + ' to ' + META.dateMax + '. The operator is Oscar Mejia, Business Manager.')
     L.push('TOTALS: ' + a.rows.length + ' painters logged (' + a.totals.shared + ' worked for both partners), ' + Math.round(a.totals.hours) + ' hours, wages ' + money(a.totals.wages) + ', subcontractor contract billing ' + money(a.totals.billing) + '.')
     L.push('DARWIN: ' + dar.rows.length + ' painters, ' + Math.round(dar.totals.hours) + 'h, wages ' + money(dar.totals.wages) + ', billing ' + money(dar.totals.billing) + '.')
@@ -281,11 +314,13 @@ export default class App extends React.Component {
     if (this.state.ai.status === 'ready') {
       const messages = [{ role: 'system', content: this.buildContext() + '\n\nReply as the Maka copilot in 2–5 sentences with specific numbers. Plain text, no markdown headers.' }]
       for (const m of base.slice(-7)) messages.push({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text })
-      let started = false
-      const replace = (s, t) => (started ? s.chat.slice(0, -1) : s.chat.slice()).concat([{ role: 'assistant', text: t }])
+      // Pure updater: always rebuild as (the turn's base messages) + the current
+      // partial, so double-invocation or event ordering can't eat the user turn.
+      const baseLen = base.length
+      const replace = (s, t) => s.chat.slice(0, baseLen).concat([{ role: 'assistant', text: t }])
       try {
         const full = await streamChat(messages, (partial) => {
-          this.setState((s) => { const c = replace(s, partial); started = true; return { chat: c, chatBusy: false } })
+          this.setState((s) => ({ chat: replace(s, partial), chatBusy: false }))
         })
         const finalText = (full || '').trim() || this.mockReply(text)
         this.setState((s) => ({ chat: replace(s, finalText), chatBusy: false }))
@@ -358,7 +393,7 @@ export default class App extends React.Component {
         return r.name + ' — ' + r.role + ', ' + r.payType + (r.rate != null ? ' at $' + r.rate : '') + ', worked for ' + r.teamsIn.map(tn).join(' and ') + '. ' + Math.round(r.hours) + ' hours across ' + r.n + ' entries' + (r.category === 'wage' ? ', est. wages ' + money(r.est) : ', contract billing ' + money(r.total)) + '.'
       }
     }
-    return 'I read the merged Mac Painters payroll — ' + a.rows.length + ' painters, ' + Math.round(a.totals.hours) + ' hours, ' + a.totals.shared + ' shared between Darwin and Mauricio. Try: "who has the most hours?", "how much in wages?", "who is shared?", or ask about a painter by name.'
+    return 'I read the merged Maka Painters payroll — ' + a.rows.length + ' painters, ' + Math.round(a.totals.hours) + ' hours, ' + a.totals.shared + ' shared between Darwin and Mauricio. Try: "who has the most hours?", "how much in wages?", "who is shared?", or ask about a painter by name.'
   }
 
   assistantVals() {

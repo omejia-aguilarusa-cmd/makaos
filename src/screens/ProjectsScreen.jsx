@@ -27,11 +27,19 @@ export default function ProjectsScreen({ initialKey, onConsumeInitial, onToast }
   const editV = useEdits()
   const [q, setQ] = useState('')
   const [status, setStatus] = useState('all')
+  const [sort, setSort] = useState('revenue') // revenue | hours | recent | margin | percent | name
   const [selKey, setSelKey] = useState(null)
   const [adding, setAdding] = useState(false)
 
   const { rows, totals } = useMemo(() => { void editV; return projectList('both', META.dateMin, META.dateMax, { q, status }) }, [editV, q, status])
-  const sorted = useMemo(() => rows.slice().sort((a, b) => (b.revenue - a.revenue) || (b.hours - a.hours)), [rows])
+  const sorted = useMemo(() => rows.slice().sort((a, b) =>
+    sort === 'hours' ? b.hours - a.hours
+    : sort === 'recent' ? ((a.last || '') < (b.last || '') ? 1 : (a.last || '') > (b.last || '') ? -1 : 0)
+    : sort === 'margin' ? ((b.margin == null ? -9 : b.margin) - (a.margin == null ? -9 : a.margin))
+    : sort === 'percent' ? b.percent - a.percent
+    : sort === 'name' ? a.address.localeCompare(b.address)
+    : (b.revenue - a.revenue) || (b.hours - a.hours),
+  ), [rows, sort])
 
   // Open a specific project when navigated here (Addresses / Reports / Painters).
   useEffect(() => {
@@ -45,6 +53,14 @@ export default function ProjectsScreen({ initialKey, onConsumeInitial, onToast }
         <div style={css('display:inline-flex;background:var(--inset);border:1px solid var(--line-soft);border-radius:8px;padding:2px;gap:2px')}>
           {STATUS_TABS.map((t) => <button key={t} onClick={() => setStatus(t)} style={css(segStyle(status === t))}>{STATUS_TAB_LABEL[t]}</button>)}
         </div>
+        <select value={sort} onChange={(e) => setSort(e.target.value)} style={css('background:var(--input-bg);border:1px solid var(--line);border-radius:7px;padding:6px 8px;font-size:12px;color:var(--text);outline:none')}>
+          <option value="revenue">Sort: revenue</option>
+          <option value="hours">Sort: hours</option>
+          <option value="recent">Sort: most recent</option>
+          <option value="margin">Sort: margin</option>
+          <option value="percent">Sort: % complete</option>
+          <option value="name">Sort: name</option>
+        </select>
         <div style={css('flex:1')} />
         <span style={css('font-size:12px;color:var(--faint);font-family:var(--font-mono)')}>{totals.count} · {money(totals.revenue)} rev · {money(totals.cost)} cost</span>
         <button onClick={() => setAdding(true)} style={css(BTN_PRIMARY)}>+ New project</button>

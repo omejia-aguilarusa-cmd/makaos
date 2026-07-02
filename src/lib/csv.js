@@ -1,5 +1,5 @@
 // Tiny client-side CSV export — builds a CSV from headers + rows and triggers a
-// download. Used to export a filtered Mac Painters pay period from the browser.
+// download. Used to export a filtered Maka Painters pay period from the browser.
 export function toCSV(headers, rows) {
   const esc = (s) => {
     s = s == null ? '' : String(s)

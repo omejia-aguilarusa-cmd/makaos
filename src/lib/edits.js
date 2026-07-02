@@ -16,7 +16,11 @@ const KEY = 'makaos.edits.v1'
 // The operator making edits (shown as "saved by"). Matches the sidebar footer.
 export const CURRENT_USER = { name: 'Oscar Mejia', role: 'Business Manager' }
 
-const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100
+// Tolerant numeric parse: accepts "$1,200.50" style input; NaN → 0.
+const round2 = (n) => {
+  const x = typeof n === 'number' ? n : Number(String(n == null ? '' : n).replace(/[$,\s]/g, ''))
+  return Number.isFinite(x) ? Math.round(x * 100) / 100 : 0
+}
 const nowISO = () => new Date().toISOString()
 
 function load() {
@@ -49,6 +53,17 @@ function load() {
 let store = load()
 let version = 0
 const listeners = new Set()
+
+// Cross-tab safety: when another tab writes the overlay, reload it here so the
+// tabs don't clobber each other's edits on the next persist().
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (ev) => {
+    if (ev.key !== KEY) return
+    store = load()
+    version += 1
+    listeners.forEach((l) => { try { l() } catch (e) { /* listener */ } })
+  })
+}
 
 function persist() { try { localStorage.setItem(KEY, JSON.stringify(store)) } catch (e) {} }
 function bump() { version += 1; listeners.forEach((l) => { try { l() } catch (e) {} }) }

@@ -5,6 +5,12 @@ import crypto from 'node:crypto'
 // browser cookie — there is no shared token store.
 
 const NAME = 'maka_sess'
+
+// True when the deployment can safely mint session cookies: a real
+// SESSION_SECRET is set, or we're running locally (not on Vercel).
+export function sessionSecretConfigured() {
+  return !!process.env.SESSION_SECRET || !process.env.VERCEL
+}
 const keyBuf = () => crypto.createHash('sha256').update(process.env.SESSION_SECRET || 'maka-os-insecure-dev-secret').digest()
 
 export function readSession(req) {

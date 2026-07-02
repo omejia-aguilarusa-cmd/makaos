@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { css } from '../lib/css.js'
 import { filterEntries, employeeById, fmtH, META, TEAM_LABEL } from '../lib/macPayroll.js'
 
-// Real work timeline for the Mac Painters crew: a heatmap of weekly hours per
+// Real work timeline for the Maka Painters crew: a heatmap of weekly hours per
 // employee, colored by the team they worked under. Shows who was on the tools
 // when, across both partners' books.
 
